@@ -1,0 +1,607 @@
+---
+title: "Politics Analysis"
+output: pdf_document
+output_dir: "../../simdiversity-data/outputs/politics/"
+params:
+  selected_option: 1
+  data_path: "../../simdiversity-data/datasets/politics/"
+  datasets:
+    - "switzerland_49"
+    - "switzerland_50"
+    - "italy_17"
+    - "italy_18"
+  data_path_pattern: "%s%s/option_%s/02_%s.rds"
+---
+
+# Politics analysis
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load libraries and variables}
+
+library("magrittr")
+library("stringr")
+library("plyr")
+library("dplyr")
+library("parallel")
+cores <- detectCores()
+options(mc.cores = cores)
+library("Rcpp")
+library("RcppArmadillo")
+
+
+library("Rtsne")
+
+source("lib/data.R")
+source("lib/distance.R")
+source("lib/plot.R")
+
+datasets <- params$datasets
+selected_option <- params$selected_option
+data_path <- params$data_path
+```
+
+Get swsiss and italian data:
+```{r load distances,weight, and base data}
+data <- list()
+dissimilarites <- list()
+weights <- list()
+w_disputedness <- list()
+scores_matrix <- list()
+
+for (dataset in datasets) {
+  print(paste("loading", dataset))
+
+  dissimilarity_path <- sprintf(
+    params$data_path_pattern,
+    data_path,
+    dataset,
+    selected_option,
+    "dissimilarity"
+  )
+  ifelse(file.exists(dissimilarity_path),
+    dissimilarites[[dataset]] <- readRDS(dissimilarity_path),
+    warning(paste(dissimilarity_path, "file not found!\n"))
+  )
+
+  weight_path <- sprintf(
+    params$data_path_pattern,
+    data_path,
+    dataset,
+    selected_option,
+    "weights"
+  )
+  ifelse(file.exists(weight_path),
+    weights[[dataset]] <- readRDS(weight_path),
+    warning(paste(weight_path, "file not found!\n"))
+  )
+
+  data_files_path <- sprintf(
+    params$data_path_pattern,
+    data_path,
+    dataset,
+    selected_option,
+    "data"
+  )
+  ifelse(file.exists(data_files_path),
+    data[[dataset]] <- readRDS(data_files_path),
+    warning(paste(data_files_path, "file not found!\n"))
+  )
+
+  disputedness_files_path <- sprintf(
+    params$data_path_pattern,
+    data_path,
+    dataset,
+    selected_option,
+    "disputedness"
+  )
+  ifelse(file.exists(disputedness_files_path),
+    w_disputedness[[dataset]] <- readRDS(disputedness_files_path),
+    warning(paste(disputedness_files_path, "file not found!\n"))
+  )
+
+  scores_matrix_files_path <- sprintf(
+    params$data_path_pattern,
+    data_path,
+    dataset,
+    selected_option,
+    "scores_matrix"
+  )
+  ifelse(file.exists(scores_matrix_files_path),
+    scores_matrix[[dataset]] <- readRDS(scores_matrix_files_path),
+    warning(paste(scores_matrix_files_path, "file not found!\n"))
+  )
+}
+
+results <- list()
+```
+
+
+```{r basic numbers}
+for (dataset in datasets) {
+  print(paste(
+    "Dataset :", dataset, "contains:",
+    nrow(scores_matrix[[dataset]]), "Councillors",
+    ncol(scores_matrix[[dataset]]), "Votes"
+  ))
+
+  if (nrow(data[[dataset]]$Scores) > nrow(data[[dataset]]$Councillors)) {
+    data[[dataset]]$Scores <- data[[dataset]]$Scores[
+      rownames(data[[dataset]]$Scores) %in% rownames(data[[dataset]]$Councillors),
+    ]
+  }
+
+  if (nrow(data[[dataset]]$Scores) < nrow(data[[dataset]]$Councillors)) {
+    data[[dataset]]$Councillors <- data[[dataset]]$Councillors[
+      rownames(data[[dataset]]$Councillors) %in% rownames(data[[dataset]]$Scores),
+    ]
+  }
+
+
+  if (ncol(data[[dataset]]$Scores) > nrow(data[[dataset]]$Votes)) {
+    data[[dataset]]$Scores <- data[[dataset]]$Scores[
+      ,
+      which(colnames(data[[dataset]]$Scores) %in% rownames(data[[dataset]]$Votes))
+    ]
+  }
+}
+```
+
+# Vote means and variance
+
+
+```{r plot vote variance, fig.show='hold', fig.width=12, fig.height=8, out.width="50%"}
+for (dataset in datasets) {
+  means_and_vars <- column_means_and_vars(scores_matrix[[dataset]])
+  table(means_and_vars$Mean_votes)
+  hist(
+    means_and_vars$Votes_variance,
+    main = paste(dataset, "-", "option", selected_option),
+    cex.lab = 2,
+    xlab = expression("vote variance " * v[l]),
+    cex.main = 2,
+    breaks = 20
+  )
+}
+```
+
+# Vote disputedness
+
+```{r plot vote disputedness, fig.width=12, fig.height=8, fig.keep='hold', out.width="50%"}
+
+for (dataset in datasets) {
+  hist(
+    w_disputedness[[dataset]],
+    breaks = 20,
+    xlab = expression("weighted disputedness " * pi[k]),
+    ylab = "count",
+    cex.axis = 2,
+    cex.lab = 2,
+    main = paste(dataset, "-", "option", selected_option)
+  )
+}
+```
+
+
+
+# MDS
+
+```{r weighted mds}
+
+for (dataset in datasets) {
+  results[[dataset]] <- weighted_mds(
+    dissimilarites[[dataset]], weights[[dataset]]
+  )
+}
+```
+
+\newpage
+## MDS by Gender Dimension 1 and 2
+```{r plot mds: gender dim 1 2, fig.width=20, fig.height=20, fig.show = "hold", fig.align = "default", out.width="50%"}
+
+for (dataset in datasets) {
+  gender <- data[[dataset]]$Councillors$gender
+  labels <- data[[dataset]]$Councillors$names
+  plot.mds(
+    results[[dataset]]$mds.Xtilde, results[[dataset]]$mds.lambda,
+    c(1, 2), weights[[dataset]],
+    group_by = gender,
+    labels = labels,
+    main = paste("Gender", gsub("_", " ", dataset), "Option", selected_option)
+  )
+}
+```
+
+\newpage
+## MDS by Gender Dimension 3 and 4
+
+```{r plot mds: gender dim 3 4, fig.width=20, fig.height=20, fig.show = "hold", fig.align = "default", out.width="50%"}
+
+for (dataset in datasets) {
+  gender <- data[[dataset]]$Councillors$gender
+  labels <- data[[dataset]]$Councillors$names
+
+  plot.mds(
+    results[[dataset]]$mds.Xtilde, results[[dataset]]$mds.lambda,
+    c(3, 4), weights[[dataset]],
+    group_by = gender,
+    labels = labels,
+    main = paste("Gender", gsub("_", " ", dataset), "Option", selected_option)
+  )
+}
+```
+
+\newpage
+## MDS by Party Dimension 1 and 2
+
+```{r plot mds: party dim 1 2, fig.width=20, fig.height=20, fig.show = "hold", fig.align = "default", out.width="50%"}
+
+for (dataset in datasets) {
+  party <- data[[dataset]]$Councillors$party
+  labels <- data[[dataset]]$Councillors$names
+
+  plot.mds(
+    results[[dataset]]$mds.Xtilde, results[[dataset]]$mds.lambda,
+    c(1, 2), weights[[dataset]],
+    group_by = party,
+    labels = labels,
+    main = paste("Party", gsub("_", " ", dataset), "Option", selected_option)
+  )
+}
+```
+
+\newpage
+## MDS by Party Dimension 3 and 4
+
+```{r plot mds: party dim 3 4, fig.width=20, fig.height=20, fig.show = "hold", fig.align = "default", out.width="50%"}
+
+for (dataset in datasets) {
+  party <- data[[dataset]]$Councillors$party
+  labels <- data[[dataset]]$Councillors$names
+
+  plot.mds(
+    results[[dataset]]$mds.Xtilde, results[[dataset]]$mds.lambda,
+    c(3, 4), weights[[dataset]],
+    group_by = party,
+    labels = labels,
+    main = paste("Party", gsub("_", " ", dataset), "Option", selected_option)
+  )
+}
+```
+
+\newpage
+## MDS by Region Dimension 1 and 2
+
+```{r plot mds: region, fig.show='hold', fig.width=20, fig.height=20, fig.align = "default", out.width="50%"}
+for (dataset in datasets) {
+  region <- data[[dataset]]$Councillors$region
+  labels <- data[[dataset]]$Councillors$names
+
+  plot.mds(
+    results[[dataset]]$mds.Xtilde, results[[dataset]]$mds.lambda,
+    c(1, 2), weights[[dataset]],
+    group_by = region,
+    labels = labels,
+    main = paste("Region", gsub("_", " ", dataset), "Option", selected_option)
+  )
+}
+```
+
+\newpage
+## MDS by Region Dimension 3 and 4
+
+```{r plot mds: region dim 3 4, fig.show='hold', fig.width=20, fig.height=20, fig.align = "default", out.width="50%"}
+for (dataset in datasets) {
+  region <- data[[dataset]]$Councillors$region
+  labels <- data[[dataset]]$Councillors$names
+
+  plot.mds(
+    results[[dataset]]$mds.Xtilde, results[[dataset]]$mds.lambda,
+    c(3, 4), weights[[dataset]],
+    group_by = region,
+    labels = labels,
+    main = paste("Region", gsub("_", " ", dataset), "Option", selected_option)
+  )
+}
+```
+
+
+\newpage
+## TSNE
+
+```{r tsne, fig.show='hold', fig.width=20, fig.height=20, fig.align = "default", out.width="50%"}
+for (dataset in datasets) {
+  party <- data[[dataset]]$Councillors$party
+  labels <- data[[dataset]]$Councillors$names
+
+  results[[dataset]]$tsne_D <- Rtsne(
+    dissimilarites[[dataset]],
+    is_distance = TRUE
+  )
+  plot.tsne(
+    results[[dataset]]$tsne_D$Y,
+    weights[[dataset]],
+    group_by = party,
+    labels = labels,
+    main = paste(
+      "Tsne Distance: Party", gsub("_", " ", dataset), "Option", selected_option
+    )
+  )
+}
+```
+
+\newpage
+
+# Party similarity
+
+```{r by parties}
+################ betwen parties ################
+
+for (dataset in datasets) {
+  results[[dataset]]$paries <- group_mesures(
+    dissimilarites[[dataset]],
+    weights[[dataset]],
+    data[[dataset]]$Councillors$party
+  )
+}
+```
+
+# Consensual Votes
+
+```{r consensual votes}
+
+for (dataset in datasets) {
+  scores <- scores_matrix[[dataset]]
+  propYES <- apply(scores, 2, function(vote_epressions) {
+    sum(vote_epressions, na.rm = T) / sum(1 - is.na(vote_epressions))
+  })
+  propNO <- apply(scores, 2, function(vote_epressions) {
+    sum(as.numeric(vote_epressions == 0), na.rm = T) / sum(1 - is.na(vote_epressions))
+  })
+  hist(propYES, breaks = 50)
+  sum(as.numeric(propNO == 0))
+}
+```
+
+# Entropy
+
+```{r entropy}
+############ Entropies on the final dissimilarities d ############
+for (dataset in datasets) {
+  results[[dataset]]$entropy <- entropy(
+    dissimilarites[[dataset]], weights[[dataset]]
+  )
+  print(paste(dataset, "entropy:", results[[dataset]]$entropy))
+}
+```
+
+# Effective Entropy
+
+```{r effective entropy}
+
+effective_entropy <- function(dissimilarity, f,
+                              Nloop = 4000, Nfine=300, 
+                              pa = -4, pb = 3, power_crit = -0.115148 
+                              ) {
+
+  cppFunction(depends = "RcppArmadillo",
+  'List soft_clustering(NumericVector fr, NumericMatrix Zr, NumericMatrix Sr, int nloops) {
+  
+      int n = Sr.nrow();
+      arma::mat S(Sr.begin(), n, n, false);
+      arma::mat Z(Zr.begin(), n, n, false);
+      arma::colvec f(fr.begin(), fr.size(), false);
+  
+      arma::colvec rho(n);
+      arma::mat sxdiagr(n,n);
+  
+      for (int i = 0; i < nloops; i++) {
+        rho = arma::trans(Z) * f;
+        sxdiagr = S * arma::diagmat(rho);
+        Z =  arma::diagmat(1 / arma::sum(sxdiagr,1)) * sxdiagr;
+      }
+      return List::create(
+        _["rho"] = rho,
+        _["Z"] = Z
+        );
+    }'
+  )
+
+  n <- nrow(dissimilarity)
+
+  if (all(dissimilarity + diag(n) > matrix(0, n,n)) && 
+          dissimilarity == t(dissimilarity)) {
+    warning("dissimilarity is not proper\n")
+  }
+  power_selection <- pa + (seq(1:Nfine) - 1) * (pb - pa) / (Nfine - 1)
+  Nsteps_beta <- length(power_selection)
+  beta_rel <- c()
+
+  counter_seq <- seq(length(power_selection))
+
+  Delta <- as.numeric(0.5 * t(f) %*% dissimilarity %*% f)
+  Dif <- dissimilarity %*% f - Delta
+
+  iterations <- lapply(counter_seq, function(counter) {
+    power <- power_selection[[counter]]
+    beta_rel <- 10^power
+    beta <- beta_rel * as.numeric(1 / Delta) # fixes the inverse temperature
+    S <- as.matrix(exp(-beta * dissimilarity)) # creates a dissimilarity matrix
+    b <- as.vector(S %*% f) #  banality
+
+    ######### usual approach by memberships z_{ij}, with usual EM-iteration
+    index <- which.min(dissimilarity %*% f) # index de l'observation la plus proche
+    indic_min <- as.numeric(1:n == index) # 0 partout, sauf 1 sur l'observation "centrale"
+
+    if (power < power_crit) {
+      rho <- as.vector(indic_min)
+      E <- -sum(f * log(S %*% rho)) # effective entropy
+      R <- -sum(f * log(S %*% f)) # reduced entropy
+      HR <- 0 # group entropy
+      Ty <- 1
+    } else {
+       # Z <- diag(n) # initialisation du clustering soft, efficient for beta large (and Niter, the number of iterations, can be small, convergence occurs rapidly: pure stayers)
+
+      # initialisation alternative, BIEN meilleure pour les hautes temperatures
+      Z <- matrix(0, n, n)
+      Z[, index] <- 1
+      eps10 <- 1e-20
+      Z <- eps10 * matrix(1, n, n) + (1 - eps10) * Z
+
+      # number of iterates (soft clustering)
+      ones <- rep(1,n)
+      # for (i in 1:Nloop) {
+      #   rho <- as.vector(crossprod(Z, f))
+      #   Sxdiagr <- S %*% diag(rho)
+      #   Z <- diag(1 / rowSums(Sxdiagr)) %*% Sxdiagr
+      #   # if (isFALSE(all.equal(rowSums(Z), ones))) {
+      #   #   warning(paste("The row sum of Z should be 1 not", all.equal(rowSums(Z), ones), "\n"))
+      #   # }
+      #   # if (isFALSE(all.equal(sum(rho), 1))) {
+      #   #   warning(paste("The row sum of rho should be 1 not", all.equal(sum(rho), 1), "\n"))
+      #   # }
+      # }
+      res = soft_clustering(f, Z, S,Nloop)
+      rho = res$rho
+      Z = res$Z
+    }
+    list(
+        "power" = power,
+        "rho" = rho,
+        "E" = -sum(f *  log( S %*% rho)), # effective entropy
+        "R" = -sum(f * log( S %*% f)), # reduced entropy
+        "HR" = -sum(rho * log(rho + 10^(-13))), # group entropy
+        "Ty" = sum(isFALSE(all.equal(rho,0))),
+        "banalities" = b,
+        "beta_rel" = beta_rel, 
+        "beta" = beta,
+        "S" = S
+      )
+  })
+  iterations
+  result = list()
+  for (name in c(
+    "power", "E", "R", "HR", "Ty", "banalities", "beta", "beta_rel"
+    )) {
+      result[[name]] <- as.vector(do.call(rbind, 
+                              lapply(iterations, function(el){el[[name]]})
+                            ))
+  }
+  result$S <-  lapply(iterations,  function(el){el$S})
+  result$rho <- do.call(cbind, lapply(iterations, function(el){el$rho}))
+  result
+}
+
+for (dataset in datasets) {
+  results[[dataset]]$effective_entropy <- effective_entropy(
+    dissimilarites[[dataset]], weights[[dataset]], 
+    Nloop = 200, Nfine = 1200, 
+    pa = -3, pb = 3, power_crit = -0.115148 
+ )
+}
+
+```
+
+```{r effective entropy plots, fig.show='hold', fig.width=20, fig.height=20, out.width="33%"}
+# ########### PLOTS INTERESSANTS ###
+# ## plot(beta_rel,rhoS[,i])
+# ## ou bien, pour aller plus vite
+for (dataset in datasets) {
+ 
+  ee <- results[[dataset]]$effective_entropy
+  is_not_null = which(colSums(ee$rho) > 0)
+   par(mar = c(4.1,5.1,0.5,0.5))
+  plot(ee$rho, main = paste(dataset,  "rho"))
+   par(mar = c(4.1,5.1,0.5,0.5))
+  plot(ee$beta_rel, main = paste(dataset, "beta_rel"))
+   par(mar = c(4.1,5.1,0.5,0.5))
+  plot(ee$R, main = paste(dataset, "R"))
+   par(mar = c(4.1,5.1,0.5,0.5))
+  plot(ee$E, main = paste(dataset, "E"))
+     par(mar = c(4.1,5.1,0.5,0.5))
+  matplot(ee$Ty, main = paste(dataset, "Ty"), type = "s")
+       par(mar = c(4.1,5.1,0.5,0.5))
+  matplot(ee$beta_rel,cbind(ee$E,ee$R,ee$H),type =  c("l"),lwd=c(2,2,2),col=c(1,1,1),log = "x")
+}
+
+```
+
+```{r, incluede=FALSE, fig.show='hold', fig.width=20, fig.height=20, out.width="25%"}
+for (dataset in datasets) {
+  ee <- results[[dataset]]$effective_entropy
+  for (i in nrow(ee$rho)){
+    matplot(ee$beta_rel, ee$rho[i,],log="x",type="l", verbode = TRUE)
+  }
+}
+```
+
+```{r, incluede=FALSE, eval=FALSE}
+# matplot(ee$beta_rel,cbind(ee$rho[,7],ee$rho[,21]),type="l",log="x")
+# 
+# # ## monotone (avec concavite pour rho(beta)>0)= pour i=1 à 13,15 à 22 à 39,42 à 47, 49,50,53 à 67, 69 à 72, 74
+# # ## non-monotone pour i=14,21,
+# # ## limite (rebond, brisant la concavite) pour i=9,40,41,48,51, 52,68 , 73
+# 
+# # ## figure 1
+# par(mar=c(4.1,5.1,0.5,0.5))
+# plot(ee$beta_rel,ee$rho[,16],type="l", xlab=expression(paste(beta[rel],"          température inverse")), ylab=expression(paste(r[j],"          poids du percept")),cex.lab=2,cex.axis=1.5,log = "x",lwd=2)
+# legend(x=5e-06, y=0.0055, legend="Rural African American Vernacular English", lty=1:2, cex=1.6,box.lty=0)
+# 
+# # ## figure 2
+# par(mar=c(4.1,5.1,0.5,0.5))
+# matplot(ee$beta_rel,cbind(ee$rho[,3],ee$rho[,2],ee$rho[,6]),log="x",type="l",xlab=expression(paste(beta[rel],"          température inverse")), ylab=expression(paste(r[j],"          poids du percept")),lty=c("dotted","dashed","solid"),col=c("black", "black","black"),cex.lab=2,cex.axis=1.5,lwd=2)
+# # legend(x=8e-05, y=0.0085, legend=c("Irish English","Scottish English","English dialects in the North of England"), lty=c(3,2,1), cex=1.6,box.lty=0)
+# 
+# # ## figure 3
+# par(mar=c(4.1,5.1,0.5,0.5))
+# matplot(ee$beta_rel,cbind(ee$rho[,51],ee$rho[,41],ee$rho[,52]),log="x",type="l",xlab=expression(paste(beta[rel],"          température inverse")), ylab=expression(paste(r[j],"          poids du percept")),lty=c("dotted","dashed","solid"),col=c("black", "black","black"),cex.lab=2,cex.axis=1.4,lwd=2)
+# # legend(x=5e-05, y=0.13, legend=c("Indian English","Nigerian Pidgin","Pakistani English"), lty=c(3,2,1), cex=1.8,box.lty=0)
+# 
+# # ## figure 4
+# par(mar=c(4.1,5.1,0.5,0.5))
+# plot(ee$beta_rel,ee$rho[,21],type="l", xlab=expression(paste(beta[rel],"          température inverse")), ylab=expression(paste(r[j],"          poids du percept")),cex.lab=2,cex.axis=1.5,log = "x",lwd=2)
+# # legend(x=3e-06, y=0.9, legend="Chicano English", lty=1:2, cex=2,box.lty=0)
+# 
+# dim(ee$rho)
+# apply(ee$rho,1,min)  ## donne min_a(rho_a) pour chaque beta, et permet de determiner beta_L: c'est l'iteration 220 pour Nfine= 301
+# ee$beta_rel[220]       ##  = 12.8825
+# which.min(ee$rho[220,]) ##  = 16
+# ee$data$Variety[16] ## Rural African American Vernacular English
+# 
+# par(mar=c(4.1,5.1,0.5,0.5))
+# plot(ee$beta_rel,ee$Ty,type="s", xlab=expression(beta[rel]), ylab=expression(paste(N[eff],"          number of effective types")), cex.lab=1.5,log = "x")
+# 
+# plot(ee$beta_rel,ee$E,type="l", xlab=expression(paste(beta[rel],"          inverse temperature")), ylab=expression(paste(E,"          effective entropy")), cex.lab=1.5,log = "x")
+# 
+# plot(ee$beta_rel,ee$E,type="l", xlab=expression(paste(beta[rel],"          inverse temperature")), ylab=expression(paste(E,"          effective entropy")), cex.lab=1.5,log = "x")
+# #
+# Shannon=-sum(weights[[dataset]]*log(weights[[dataset]]))
+# H=rep(Shannon,length(power_selection))  # a constant equal to Shannon entropy
+# #
+# par(mar=c(4.1,5.1,0.5,0.5))
+# matplot(ee$beta_rel,cbind(ee$E,ee$R,H),type =  c("l"),lwd=c(2,2,2),col=c(1,1,1),log = "x",xlab=expression(paste(beta[rel],"          inverse temperature")), ylab="diversity measures : E, R and H",cex.lab=1.5)
+# #
+# plot(ee$beta_rel,ee$Ty,type="s", xlab=expression(paste(beta[rel],"          inverse temperature")), ylab=expression(paste(N[eff],"          number of identified categories")), cex.lab=1.5,log = "x")
+# }
+```
+
+```{r}
+output_path = paste0(data_path, "/option_", selected_option, "/")
+if (!dir.exists(output_path)) dir.create(output_path, recursive = TRUE)
+
+saveRDS(
+  results,
+    paste0(
+      output_path, "03_results.rds"
+  )
+)
+```
+
+```{r clean, include=FALSE}
+rm(list = ls(all.names = TRUE))
+gc()
+gc()
+```

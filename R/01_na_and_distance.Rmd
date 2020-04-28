@@ -1,0 +1,307 @@
+---
+title: "Politics distance computation"
+author: "Mattia Egloff"
+date: "18/03/2020"
+output: pdf_document
+output_dir: "../../simdiversity-data/outputs/politics/"    
+params:
+  datasets:
+    - "swiss_legislator_49"
+    - "swiss_legislator_50"
+    - "italian_legislator_17"
+    - "italian_legislator_18"
+  selected_dataset: 1
+  selected_option: 2
+
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load libraries and variables}
+library(tidyverse)
+library(simdiversity.data.politics)
+
+load_as_dataset <- function(data_set_name) {
+  d <- new.env()
+  data(list = c(data_set_name), envir = d)
+  dataset <- get(data_set_name, envir = d)
+  rm(d)
+  dataset
+}
+
+as_matrix <- function(x, id_col){
+  id_col <- enquo(id_col)
+  if (!tibble::is_tibble(x)) stop("x must be a tibble")
+  y <- as.matrix.data.frame(
+    x %>% 
+      select(-(!!!id_col))
+  )
+  rownames(y) <- 
+    x %>% 
+    select(!!!id_col) %>% 
+    unlist(use.names = FALSE)
+  y
+}
+
+```
+
+```{r load data}
+data_set_name <- params$datasets[[params$selected_dataset]]
+data_set <- load_as_dataset(data_set_name)
+
+```
+
+
+The values of the data are coded as follows:
+
+0. "Nein", "Non", "No"
+1. "Ja", "Oui", "Si"
+2. "Enthaltung", "Abstention", "Astensione"
+3. "Der Pr??sident stimmt nicht", "Pr??sident ne vote pas", "Presidente non voto"
+4. "Entschuldigt", "Excus??", "Scusato"
+5. "Not avilable": means that the councillor is not part of the council.
+6. "Hat nicht teilgenommen", "N'a pas particip??" "Non ha partecipato"
+
+## Handle values that are not votes *per se*
+
+The handeling of values other than "Yes" or "No" can be done by different means:
+
+1. Everything that is not a vote is NA
+2. Abstentions, Persidential non - vote, and excused are set to .5, absences and NA are set to NA.
+
+
+###
+
+1. Only real votes count
+2. Abstentions, Persidential non - vote, are set to 0.5
+3. Abstentions, Persidential non - vote, and excused are set to 0.5
+```{r to NA}
+if (params$selected_option == 1) score_codes <- 
+  recode(
+    data_set$score_codes,
+   `0` = 0, `1` = 1, `2` = NA_real_,
+   `3` = NA_real_, `4` = NA_real_, 
+   `5` = NA_real_, `6` = NA_real_
+  )
+
+if (params$selected_option == 2) score_codes <- 
+  recode(
+    data_set$score_codes,
+   `0` = 0, `1` = 1, `2` = 0.5,
+   `3` = NA_real_, `4` = NA_real_, 
+   `5` = NA_real_, `6` = NA_real_
+  )
+if (params$selected_option == 3) score_codes <- 
+  recode(
+    data_set$score_codes,
+   `0` = 0, `1` = 1, `2` = 0.5,
+   `3` = 0.5, `4` = NA_real_, 
+   `5` = NA_real_, `6` = NA_real_
+  )
+names(score_codes) <- names(data_set$score_codes)
+
+scores_matrix <-
+  data_set$scores %>%
+  mutate_at(vars(-i_id), ~replace_na(., "NA")) %>%
+  mutate_at(vars(-i_id), ~recode(., !!!score_codes)) %>%
+  as_matrix(i_id)
+
+n <- nrow(scores_matrix)
+p <- ncol(scores_matrix)
+dim(scores_matrix)
+```
+
+
+
+```{r number of complete cases and percentage of NA, fig.width=12, fig.height=12}
+scores_matrix %>% 
+  complete.cases() %>% sum()
+scores_matrix %>% 
+  t() %>% complete.cases() %>% sum()
+scores_matrix %>% 
+  {sum(is.na(.)) * 100 / (nrow(.) * ncol(.))} %>% 
+  round(digits = 2) %>% paste0("% of NA")
+scores_matrix %>% 
+  is.na() %>% {round(colSums(.)/nrow(.), 3)} %>% table %>%
+  plot(xlab = "% missing in columns", ylab = "frequency")
+scores_matrix %>% 
+  is.na() %>% {round(rowSums(.)/ncol(.), 3)} %>% table %>%
+  plot(xlab = "% missing in rows", ylab = "frequency")
+
+is_value <- factor(c("Yes", "No"))
+data_set$scores %>%
+  mutate_at(vars(-i_id), ~replace_na(., "NA")) %>%
+  mutate_at(vars(-i_id), ~recode(., !!!score_codes)) %>%
+  mutate_at(vars(-i_id), ~ifelse(is.na(.), 1, 2)) %>%
+  pivot_longer(-i_id, names_to = "v_id", values_to = "element") %>%
+  ggplot(aes(y = v_id, x = i_id, fill = is_value[element])) + 
+  geom_tile(size = 20, width = 4) +
+  scale_x_discrete(expand = c(0,0)) +
+  scale_y_discrete(expand = c(0,0)) +
+  scale_fill_manual(values = c("black", "red")) +
+  theme(axis.text.x = element_text(size = rel(.4), angle = 90)) +
+  theme(axis.title.y = element_text(size = rel(.4), angle = 90)) +
+  ggtitle("Hitmap NA values of scores_matrix")
+```
+
+## Dealing with NA
+
+Remove all lines and columns that contain only NA
+
+```{r find NAs, fig.show='hold', fig.width=12, fig.height=8, out.width="50%"}
+
+null_votes_index = apply(scores_matrix, 2, function(x){all(is.na(x))})
+null_councillors_index = apply(scores_matrix, 1, function(x){all(is.na(x))})
+null_votes = c(names(  which(null_votes_index)))
+null_councilors =  c(names(which(null_councillors_index)))
+null_votes
+null_councilors
+
+scores_matrix <- scores_matrix[!null_councillors_index,!null_votes_index]
+n <- nrow( scores_matrix )
+p <- ncol( scores_matrix )
+```
+
+
+```{r validity matrix, fig.show='hold', fig.width=12, fig.height=8, out.width="50%"}
+weights <- weight_valid(scores_matrix)
+if (any(weights == 0)) warning("Some Weights are 0")
+if (!sum(weights) == 1) warning("The sum of the weights is not 1")
+hist(table(weights), main = "Weights", xlab = "")
+boxplot(weights, main = "Weights")
+```
+Plot the vote variance
+
+## Compute dissimilarities
+
+### Simple dissimilarities
+```{r simple L1 dissimilarity, fig.width=12, fig.height=12}
+D_L1 <- dissimilarity.L1(scores_matrix)
+plot.matrix(D_L1)
+
+```
+
+### Renormalized dissimilarities
+
+#### Vote Disputedness
+
+Compute vote disputedness
+
+```{r}
+weighted_vote_disputedness <- disputedness(
+  scores_matrix, weights
+)
+```
+
+Plot vote disputedness:
+```{r vote disputedness,  fig.show='hold', fig.width=12, fig.height=8, out.width="50%"}
+hist(table(weighted_vote_disputedness),
+     main = "Weighted vote disputedness", xlab = ""
+)
+boxplot(weighted_vote_disputedness,
+        main = "Weighted vote disputedness")
+
+```
+
+
+## Compute the dissimilarity renormalised by disputedness
+
+```{r renormalised dissimilarity, fig.width=12, fig.height=12}
+D_disputedness <- dissimilarity.renormalised(
+  scores_matrix,
+  weighted_vote_disputedness
+)
+plot.matrix(D_disputedness)
+```
+
+
+```{r estimating dtilde, fig.width=12, fig.height=12}
+
+dtilde <- dissimilarity.tilde_estimation(
+  D_disputedness, weights
+)
+
+q <- D_disputedness/dtilde
+
+```
+
+
+```{r estimate dissimilarity}
+
+D_estim <- dissimilarity.regression_estimation(
+  dtilde, q
+)
+```
+
+### Final dissimilarity
+
+If d[i, j] est exists, average dfinal[i, j] with:
+    0.5 * (d[i, j] + d_estim[i, j])
+else dfinal[i, j] par d_estim[i, j]
+
+```{r final dissimilarity, fig.width=12, fig.height=12}
+
+D_final <- dissimilarity.final(D_estim, D_disputedness)
+plot.matrix(D_final)
+```
+
+```{r save data}
+output_path = paste0(data_path, dataset, "/option_", selected_option, "/")
+if (!dir.exists(output_path)) dir.create(output_path, recursive = TRUE)
+
+saveRDS(
+  scores_matrix,
+    paste0(
+      output_path, "02_scores_matrix.rds"
+  )
+)
+
+weighted_vote_disputedness <- weighted_vote_disputedness
+saveRDS(
+  weighted_vote_disputedness,
+    paste0(
+      output_path, "02_disputedness.rds"
+  )
+)
+
+saveRDS(
+  results,
+  paste0(
+     output_path, "02_results.rds"
+  )
+)
+
+dissimilarity <- D_final
+saveRDS(
+  dissimilarity,
+  paste0(
+     output_path, "02_dissimilarity.rds"
+  )
+)
+
+weights <- weights
+saveRDS(
+  weights,
+  paste0(
+     output_path, "02_weights.rds"
+  )
+)
+
+saveRDS(
+  data,
+  paste0(
+     output_path, "02_data.rds"
+  )
+)
+```
+
+
+```{r clean, include=FALSE}
+rm(list = ls(all.names = TRUE))
+gc()
+gc()
+```
