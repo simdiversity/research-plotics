@@ -6,6 +6,6 @@ Author: Mattia Egloff <megloff1@unil.ch> and Fran\\u00e7ois Bavaud <fbavaud@unil
 Maintainer: Mattia Egloff <megloff1@unil.ch>
 Description: The research on the political datasets for polls of swiss and italian
     parliments.
-License: MIT
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
