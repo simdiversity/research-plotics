@@ -2,10 +2,22 @@ Package: simdiversity.research.politics
 Type: Package
 Title: Simdiversity Research on political data
 Version: 0.1.0
-Author: Mattia Egloff <megloff1@unil.ch> and Fran\\u00e7ois Bavaud <fbavaud@unil.ch>
+Authors@R: person("Mattia", "Egloff", email = "megloff1@unil.ch",
+                  role = c("aut", "cre"))
+            person("Fran\\u00e7ois", "Bavaud", email = "fbavaud@unil.ch",
+                  role = c("aut", "cre", "cph"))
+Authors: Mattia Egloff and Fran\\u00e7ois Bavaud
 Maintainer: Mattia Egloff <megloff1@unil.ch>
 Description: The research on the political datasets for polls of swiss and italian
     parliments.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
+Imports:
+    simdiversity.data.politics,
+    simdiversity.RNcEDGPS,
+    simdiversity.entropy,
+    rmarkdown,
+    magrittr,
+    tibble,
+    dplyr
