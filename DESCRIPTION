@@ -21,3 +21,6 @@ Imports:
     magrittr,
     tibble,
     dplyr
+Depends: 
+    R (>= 2.10)
+RoxygenNote: 7.1.0

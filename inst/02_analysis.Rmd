@@ -27,7 +27,7 @@ library("stringr")
 library("plyr")
 library("dplyr")
 library("parallel")
-cores <- detectCores()
+cores <- parallel::detectCores()
 options(mc.cores = cores)
 library("Rcpp")
 library("RcppArmadillo")
@@ -382,126 +382,13 @@ for (dataset in datasets) {
 
 ```{r effective entropy}
 
-effective_entropy <- function(dissimilarity, f,
-                              Nloop = 4000, Nfine=300, 
-                              pa = -4, pb = 3, power_crit = -0.115148 
-                              ) {
-
-  cppFunction(depends = "RcppArmadillo",
-  'List soft_clustering(NumericVector fr, NumericMatrix Zr, NumericMatrix Sr, int nloops) {
-  
-      int n = Sr.nrow();
-      arma::mat S(Sr.begin(), n, n, false);
-      arma::mat Z(Zr.begin(), n, n, false);
-      arma::colvec f(fr.begin(), fr.size(), false);
-  
-      arma::colvec rho(n);
-      arma::mat sxdiagr(n,n);
-  
-      for (int i = 0; i < nloops; i++) {
-        rho = arma::trans(Z) * f;
-        sxdiagr = S * arma::diagmat(rho);
-        Z =  arma::diagmat(1 / arma::sum(sxdiagr,1)) * sxdiagr;
-      }
-      return List::create(
-        _["rho"] = rho,
-        _["Z"] = Z
-        );
-    }'
-  )
-
-  n <- nrow(dissimilarity)
-
-  if (all(dissimilarity + diag(n) > matrix(0, n,n)) && 
-          dissimilarity == t(dissimilarity)) {
-    warning("dissimilarity is not proper\n")
-  }
-  power_selection <- pa + (seq(1:Nfine) - 1) * (pb - pa) / (Nfine - 1)
-  Nsteps_beta <- length(power_selection)
-  beta_rel <- c()
-
-  counter_seq <- seq(length(power_selection))
-
-  Delta <- as.numeric(0.5 * t(f) %*% dissimilarity %*% f)
-  Dif <- dissimilarity %*% f - Delta
-
-  iterations <- lapply(counter_seq, function(counter) {
-    power <- power_selection[[counter]]
-    beta_rel <- 10^power
-    beta <- beta_rel * as.numeric(1 / Delta) # fixes the inverse temperature
-    S <- as.matrix(exp(-beta * dissimilarity)) # creates a dissimilarity matrix
-    b <- as.vector(S %*% f) #  banality
-
-    ######### usual approach by memberships z_{ij}, with usual EM-iteration
-    index <- which.min(dissimilarity %*% f) # index de l'observation la plus proche
-    indic_min <- as.numeric(1:n == index) # 0 partout, sauf 1 sur l'observation "centrale"
-
-    if (power < power_crit) {
-      rho <- as.vector(indic_min)
-      E <- -sum(f * log(S %*% rho)) # effective entropy
-      R <- -sum(f * log(S %*% f)) # reduced entropy
-      HR <- 0 # group entropy
-      Ty <- 1
-    } else {
-       # Z <- diag(n) # initialisation du clustering soft, efficient for beta large (and Niter, the number of iterations, can be small, convergence occurs rapidly: pure stayers)
-
-      # initialisation alternative, BIEN meilleure pour les hautes temperatures
-      Z <- matrix(0, n, n)
-      Z[, index] <- 1
-      eps10 <- 1e-20
-      Z <- eps10 * matrix(1, n, n) + (1 - eps10) * Z
-
-      # number of iterates (soft clustering)
-      ones <- rep(1,n)
-      # for (i in 1:Nloop) {
-      #   rho <- as.vector(crossprod(Z, f))
-      #   Sxdiagr <- S %*% diag(rho)
-      #   Z <- diag(1 / rowSums(Sxdiagr)) %*% Sxdiagr
-      #   # if (isFALSE(all.equal(rowSums(Z), ones))) {
-      #   #   warning(paste("The row sum of Z should be 1 not", all.equal(rowSums(Z), ones), "\n"))
-      #   # }
-      #   # if (isFALSE(all.equal(sum(rho), 1))) {
-      #   #   warning(paste("The row sum of rho should be 1 not", all.equal(sum(rho), 1), "\n"))
-      #   # }
-      # }
-      res = soft_clustering(f, Z, S,Nloop)
-      rho = res$rho
-      Z = res$Z
-    }
-    list(
-        "power" = power,
-        "rho" = rho,
-        "E" = -sum(f *  log( S %*% rho)), # effective entropy
-        "R" = -sum(f * log( S %*% f)), # reduced entropy
-        "HR" = -sum(rho * log(rho + 10^(-13))), # group entropy
-        "Ty" = sum(isFALSE(all.equal(rho,0))),
-        "banalities" = b,
-        "beta_rel" = beta_rel, 
-        "beta" = beta,
-        "S" = S
-      )
-  })
-  iterations
-  result = list()
-  for (name in c(
-    "power", "E", "R", "HR", "Ty", "banalities", "beta", "beta_rel"
-    )) {
-      result[[name]] <- as.vector(do.call(rbind, 
-                              lapply(iterations, function(el){el[[name]]})
-                            ))
-  }
-  result$S <-  lapply(iterations,  function(el){el$S})
-  result$rho <- do.call(cbind, lapply(iterations, function(el){el$rho}))
-  result
-}
 
 for (dataset in datasets) {
-  results[[dataset]]$effective_entropy <- effective_entropy(
-    dissimilarites[[dataset]], weights[[dataset]], 
-    Nloop = 200, Nfine = 1200, 
-    pa = -3, pb = 3, power_crit = -0.115148 
- )
-}
+results[[dataset]]$effective_entropy <- effective_entropy(
+  dissimilarites[[dataset]], weights[[dataset]],
+  Nloop = 200, Nfine = 1200,
+  pa = -3, pb = 3, power_crit = -0.115148
+)
 
 ```
 
@@ -541,28 +428,28 @@ for (dataset in datasets) {
 ```{r, incluede=FALSE, eval=FALSE}
 # matplot(ee$beta_rel,cbind(ee$rho[,7],ee$rho[,21]),type="l",log="x")
 # 
-# # ## monotone (avec concavite pour rho(beta)>0)= pour i=1 à 13,15 à 22 à 39,42 à 47, 49,50,53 à 67, 69 à 72, 74
+# # ## monotone (avec concavite pour rho(beta)>0)= pour i=1 ?? 13,15 ?? 22 ?? 39,42 ?? 47, 49,50,53 ?? 67, 69 ?? 72, 74
 # # ## non-monotone pour i=14,21,
 # # ## limite (rebond, brisant la concavite) pour i=9,40,41,48,51, 52,68 , 73
 # 
 # # ## figure 1
 # par(mar=c(4.1,5.1,0.5,0.5))
-# plot(ee$beta_rel,ee$rho[,16],type="l", xlab=expression(paste(beta[rel],"          température inverse")), ylab=expression(paste(r[j],"          poids du percept")),cex.lab=2,cex.axis=1.5,log = "x",lwd=2)
+# plot(ee$beta_rel,ee$rho[,16],type="l", xlab=expression(paste(beta[rel],"          temp??rature inverse")), ylab=expression(paste(r[j],"          poids du percept")),cex.lab=2,cex.axis=1.5,log = "x",lwd=2)
 # legend(x=5e-06, y=0.0055, legend="Rural African American Vernacular English", lty=1:2, cex=1.6,box.lty=0)
 # 
 # # ## figure 2
 # par(mar=c(4.1,5.1,0.5,0.5))
-# matplot(ee$beta_rel,cbind(ee$rho[,3],ee$rho[,2],ee$rho[,6]),log="x",type="l",xlab=expression(paste(beta[rel],"          température inverse")), ylab=expression(paste(r[j],"          poids du percept")),lty=c("dotted","dashed","solid"),col=c("black", "black","black"),cex.lab=2,cex.axis=1.5,lwd=2)
+# matplot(ee$beta_rel,cbind(ee$rho[,3],ee$rho[,2],ee$rho[,6]),log="x",type="l",xlab=expression(paste(beta[rel],"          temp??rature inverse")), ylab=expression(paste(r[j],"          poids du percept")),lty=c("dotted","dashed","solid"),col=c("black", "black","black"),cex.lab=2,cex.axis=1.5,lwd=2)
 # # legend(x=8e-05, y=0.0085, legend=c("Irish English","Scottish English","English dialects in the North of England"), lty=c(3,2,1), cex=1.6,box.lty=0)
 # 
 # # ## figure 3
 # par(mar=c(4.1,5.1,0.5,0.5))
-# matplot(ee$beta_rel,cbind(ee$rho[,51],ee$rho[,41],ee$rho[,52]),log="x",type="l",xlab=expression(paste(beta[rel],"          température inverse")), ylab=expression(paste(r[j],"          poids du percept")),lty=c("dotted","dashed","solid"),col=c("black", "black","black"),cex.lab=2,cex.axis=1.4,lwd=2)
+# matplot(ee$beta_rel,cbind(ee$rho[,51],ee$rho[,41],ee$rho[,52]),log="x",type="l",xlab=expression(paste(beta[rel],"          temp??rature inverse")), ylab=expression(paste(r[j],"          poids du percept")),lty=c("dotted","dashed","solid"),col=c("black", "black","black"),cex.lab=2,cex.axis=1.4,lwd=2)
 # # legend(x=5e-05, y=0.13, legend=c("Indian English","Nigerian Pidgin","Pakistani English"), lty=c(3,2,1), cex=1.8,box.lty=0)
 # 
 # # ## figure 4
 # par(mar=c(4.1,5.1,0.5,0.5))
-# plot(ee$beta_rel,ee$rho[,21],type="l", xlab=expression(paste(beta[rel],"          température inverse")), ylab=expression(paste(r[j],"          poids du percept")),cex.lab=2,cex.axis=1.5,log = "x",lwd=2)
+# plot(ee$beta_rel,ee$rho[,21],type="l", xlab=expression(paste(beta[rel],"          temp??rature inverse")), ylab=expression(paste(r[j],"          poids du percept")),cex.lab=2,cex.axis=1.5,log = "x",lwd=2)
 # # legend(x=3e-06, y=0.9, legend="Chicano English", lty=1:2, cex=2,box.lty=0)
 # 
 # dim(ee$rho)

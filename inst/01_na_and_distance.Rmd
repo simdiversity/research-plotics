@@ -12,7 +12,6 @@ params:
     - "italian_legislator_18"
   selected_dataset: 1
   selected_option: 2
-
 editor_options:
   chunk_output_type: console
 ---
@@ -24,6 +23,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r load libraries and variables}
 library(tidyverse)
 library(simdiversity.data.politics)
+library(simdiversity.RNcEDGPS)
 
 load_as_dataset <- function(data_set_name) {
   d <- new.env()
@@ -38,11 +38,11 @@ as_matrix <- function(x, id_col){
   if (!tibble::is_tibble(x)) stop("x must be a tibble")
   y <- as.matrix.data.frame(
     x %>% 
-      select(-(!!!id_col))
+      select(-(!!id_col))
   )
   rownames(y) <- 
     x %>% 
-    select(!!!id_col) %>% 
+    select(!!id_col) %>% 
     unlist(use.names = FALSE)
   y
 }
@@ -108,6 +108,7 @@ scores_matrix <-
   data_set$scores %>%
   mutate_at(vars(-i_id), ~replace_na(., "NA")) %>%
   mutate_at(vars(-i_id), ~recode(., !!!score_codes)) %>%
+  mutate_at(vars(-i_id), ~as.integer()) %>%
   as_matrix(i_id)
 
 n <- nrow(scores_matrix)
@@ -131,7 +132,9 @@ scores_matrix %>%
 scores_matrix %>% 
   is.na() %>% {round(rowSums(.)/ncol(.), 3)} %>% table %>%
   plot(xlab = "% missing in rows", ylab = "frequency")
+```
 
+```{r}
 is_value <- factor(c("Yes", "No"))
 data_set$scores %>%
   mutate_at(vars(-i_id), ~replace_na(., "NA")) %>%
@@ -162,30 +165,22 @@ null_votes
 null_councilors
 
 scores_matrix <- scores_matrix[!null_councillors_index,!null_votes_index]
+dim(scores_matrix)
 n <- nrow( scores_matrix )
 p <- ncol( scores_matrix )
 ```
 
 
 ```{r validity matrix, fig.show='hold', fig.width=12, fig.height=8, out.width="50%"}
-weights <- weight_valid(scores_matrix)
-if (any(weights == 0)) warning("Some Weights are 0")
-if (!sum(weights) == 1) warning("The sum of the weights is not 1")
-hist(table(weights), main = "Weights", xlab = "")
-boxplot(weights, main = "Weights")
+weight <- validity.weight(scores_matrix)
+if (any(weight == 0)) warning("Some weight are 0")
+if (!sum(weight) == 1) warning("The sum of the weight is not 1")
+hist(table(weight), main = "weight", xlab = "")
+boxplot(weight, main = "weight")
 ```
 Plot the vote variance
 
 ## Compute dissimilarities
-
-### Simple dissimilarities
-```{r simple L1 dissimilarity, fig.width=12, fig.height=12}
-D_L1 <- dissimilarity.L1(scores_matrix)
-plot.matrix(D_L1)
-
-```
-
-### Renormalized dissimilarities
 
 #### Vote Disputedness
 
@@ -193,7 +188,7 @@ Compute vote disputedness
 
 ```{r}
 weighted_vote_disputedness <- disputedness(
-  scores_matrix, weights
+  scores_matrix, weight
 )
 ```
 
@@ -208,95 +203,18 @@ boxplot(weighted_vote_disputedness,
 ```
 
 
-## Compute the dissimilarity renormalised by disputedness
-
-```{r renormalised dissimilarity, fig.width=12, fig.height=12}
-D_disputedness <- dissimilarity.renormalised(
-  scores_matrix,
-  weighted_vote_disputedness
-)
-plot.matrix(D_disputedness)
-```
-
-
-```{r estimating dtilde, fig.width=12, fig.height=12}
-
-dtilde <- dissimilarity.tilde_estimation(
-  D_disputedness, weights
-)
-
-q <- D_disputedness/dtilde
-
-```
-
-
-```{r estimate dissimilarity}
-
-D_estim <- dissimilarity.regression_estimation(
-  dtilde, q
-)
-```
-
-### Final dissimilarity
-
-If d[i, j] est exists, average dfinal[i, j] with:
-    0.5 * (d[i, j] + d_estim[i, j])
-else dfinal[i, j] par d_estim[i, j]
-
 ```{r final dissimilarity, fig.width=12, fig.height=12}
 
-D_final <- dissimilarity.final(D_estim, D_disputedness)
-plot.matrix(D_final)
+D_final <- estimate.distance(scores_matrix, weight, weighted_vote_disputedness)
 ```
 
 ```{r save data}
-output_path = paste0(data_path, dataset, "/option_", selected_option, "/")
-if (!dir.exists(output_path)) dir.create(output_path, recursive = TRUE)
-
-saveRDS(
-  scores_matrix,
-    paste0(
-      output_path, "02_scores_matrix.rds"
-  )
-)
-
-weighted_vote_disputedness <- weighted_vote_disputedness
-saveRDS(
-  weighted_vote_disputedness,
-    paste0(
-      output_path, "02_disputedness.rds"
-  )
-)
-
-saveRDS(
-  results,
-  paste0(
-     output_path, "02_results.rds"
-  )
-)
-
-dissimilarity <- D_final
-saveRDS(
-  dissimilarity,
-  paste0(
-     output_path, "02_dissimilarity.rds"
-  )
-)
-
-weights <- weights
-saveRDS(
-  weights,
-  paste0(
-     output_path, "02_weights.rds"
-  )
-)
-
-saveRDS(
-  data,
-  paste0(
-     output_path, "02_data.rds"
-  )
-)
+usethis::use_data(D_final)
+file_move(here("data", "D_final.rds"), here("data", paste0(data_set_name, "-D_final.rds")))
+usethis::use_data(weight)
+file_move(here("data", "weight.rds"), here("data", paste0(data_set_name, "-weight.rds")))
+usethis::use_data(weighted_vote_disputedness)
+file_move(here("data", "weighted_vote_disputedness.rds"), here("data", paste0(data_set_name, "-weighted_vote_disputedness.rds")))
 ```
 
 
