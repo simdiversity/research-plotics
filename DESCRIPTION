@@ -20,7 +20,8 @@ Imports:
     rmarkdown,
     magrittr,
     tibble,
-    dplyr
+    dplyr,
+    here
 Depends: 
-    R (>= 2.10)
+    R (>= 3.50)
 RoxygenNote: 7.1.0
