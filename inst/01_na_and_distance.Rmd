@@ -25,34 +25,11 @@ library(tidyverse)
 library(simdiversity.data.politics)
 library(simdiversity.RNcEDGPS)
 
-load_as_dataset <- function(data_set_name) {
-  d <- new.env()
-  data(list = c(data_set_name), envir = d)
-  dataset <- get(data_set_name, envir = d)
-  rm(d)
-  dataset
-}
-
-as_matrix <- function(x, id_col){
-  id_col <- enquo(id_col)
-  if (!tibble::is_tibble(x)) stop("x must be a tibble")
-  y <- as.matrix.data.frame(
-    x %>% 
-      select(-(!!id_col))
-  )
-  rownames(y) <- 
-    x %>% 
-    select(!!id_col) %>% 
-    unlist(use.names = FALSE)
-  y
-}
-
 ```
 
 ```{r load data}
 data_set_name <- params$datasets[[params$selected_dataset]]
 data_set <- load_as_dataset(data_set_name)
-
 ```
 
 
@@ -80,40 +57,7 @@ The handeling of values other than "Yes" or "No" can be done by different means:
 2. Abstentions, Persidential non - vote, are set to 0.5
 3. Abstentions, Persidential non - vote, and excused are set to 0.5
 ```{r to NA}
-if (params$selected_option == 1) score_codes <- 
-  recode(
-    data_set$score_codes,
-   `0` = 0, `1` = 1, `2` = NA_real_,
-   `3` = NA_real_, `4` = NA_real_, 
-   `5` = NA_real_, `6` = NA_real_
-  )
 
-if (params$selected_option == 2) score_codes <- 
-  recode(
-    data_set$score_codes,
-   `0` = 0, `1` = 1, `2` = 0.5,
-   `3` = NA_real_, `4` = NA_real_, 
-   `5` = NA_real_, `6` = NA_real_
-  )
-if (params$selected_option == 3) score_codes <- 
-  recode(
-    data_set$score_codes,
-   `0` = 0, `1` = 1, `2` = 0.5,
-   `3` = 0.5, `4` = NA_real_, 
-   `5` = NA_real_, `6` = NA_real_
-  )
-names(score_codes) <- names(data_set$score_codes)
-
-scores_matrix <-
-  data_set$scores %>%
-  mutate_at(vars(-i_id), ~replace_na(., "NA")) %>%
-  mutate_at(vars(-i_id), ~recode(., !!!score_codes)) %>%
-  mutate_at(vars(-i_id), ~as.integer()) %>%
-  as_matrix(i_id)
-
-n <- nrow(scores_matrix)
-p <- ncol(scores_matrix)
-dim(scores_matrix)
 ```
 
 
@@ -184,13 +128,6 @@ Plot the vote variance
 
 #### Vote Disputedness
 
-Compute vote disputedness
-
-```{r}
-weighted_vote_disputedness <- disputedness(
-  scores_matrix, weight
-)
-```
 
 Plot vote disputedness:
 ```{r vote disputedness,  fig.show='hold', fig.width=12, fig.height=8, out.width="50%"}
