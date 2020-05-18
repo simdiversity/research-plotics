@@ -48,7 +48,7 @@ for (dataset_name in data_sets) {
       matrix(nrow = nrow(data_set$polls), dimnames = dimnames(data_set$polls))
 
 
-    file_name = paste0(dataset_name, "-", option, "-scores_matrix")
+    file_name = paste0(dataset_name, "__", option, "__scores_matrix")
     assign(file_name, scores_matrix )
     save(
       list = c(file_name),
@@ -66,7 +66,7 @@ for (dataset_name in data_sets) {
     null_votes <- c(names(which(null_votes_index)))
     save_with_name(
       null_votes,
-      paste0(dataset_name, "-", option, "-null_votes"),
+      paste0(dataset_name, "__", option, "__null_votes"),
       compress = "gzip"
     )
 
@@ -74,7 +74,7 @@ for (dataset_name in data_sets) {
     null_councilors <- c(names(which(null_councillors_index)))
     save_with_name(
       null_councilors,
-      paste0(dataset_name, "-", option, "-null_councilors"),
+      paste0(dataset_name, "__", option, "__null_councilors"),
       compress = "gzip"
     )
 
@@ -85,7 +85,7 @@ for (dataset_name in data_sets) {
     weight <- validity_weight(scores_matrix)
     save_with_name(
       weight,
-      paste0(dataset_name, "-", option, "-weight"),
+      paste0(dataset_name, "__", option, "__weight"),
       compress = "gzip"
     )
 
@@ -93,7 +93,7 @@ for (dataset_name in data_sets) {
       scores_matrix, weight
     )
     save_with_name( weighted_vote_disputedness,
-      paste0(dataset_name, "-", option, "-weighted_vote_disputedness"),
+      paste0(dataset_name, "__", option, "__weighted_vote_disputedness"),
       compress = "gzip"
     )
 
@@ -101,7 +101,7 @@ for (dataset_name in data_sets) {
       scores_matrix, weight, weighted_vote_disputedness
     )
     save_with_name(D_final,
-      paste0(dataset_name, "-", option, "-D_final"),
+      paste0(dataset_name, "__", option, "__D_final"),
       compress = "xz"
     )
 
