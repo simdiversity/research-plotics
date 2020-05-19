@@ -14,9 +14,6 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports:
-    simdiversity.data.politics (>= 0.1.0),
-    simdiversity.RNcEDGPS  (>= 0.1.0),
-    simdiversity.entropy  (>= 0.1.0),
     rmarkdown,
     magrittr,
     tibble,
@@ -25,7 +22,4 @@ Imports:
 Depends: 
     R (>= 3.50)
 RoxygenNote: 7.1.0
-Remotes:  
-    simdiversity/data-politics (auth_token = "8a5922b49bcc3a395ea3ea0c026c48518bb65d2d"),
-    simdiversity/entropy (auth_token = "8a5922b49bcc3a395ea3ea0c026c48518bb65d2d"),
-    simdiversity/RNcEDGPS (auth_token = "8a5922b49bcc3a395ea3ea0c026c48518bb65d2d")
+

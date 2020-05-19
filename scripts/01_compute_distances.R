@@ -1,8 +1,13 @@
 library(here)
 library(magrittr)
 library(dplyr)
-library(simdiversity.RNcEDGPS)
-library(simdiversity.data.politics)
+if (!require(simdiversity.data.politics))
+devtools::install_github(simdiversity/data-politics, auth_token = "8a5922b49bcc3a395ea3ea0c026c48518bb65d2d")
+if (!require(simdiversity.entropy))
+devtools::install_github(simdiversity/entropy, auth_token = "8a5922b49bcc3a395ea3ea0c026c48518bb65d2d")
+if (!require(simdiversity.RNcEDGPS))
+devtools::install_github(simdiversity/RNcEDGPS, auth_token = "8a5922b49bcc3a395ea3ea0c026c48518bb65d2d")
+devtools::load_all()
 
 data_sets <- c(
   data(package = "simdiversity.data.politics")
@@ -12,35 +17,8 @@ for (dataset_name in data_sets) {
   data_set <- dataset_from_str(dataset_name)
 
   for (option in seq(3)) {
+    poll_codes <- poll_codes_for_option(option)
 
-    if (option == 1) {
-      poll_codes <-
-        c(
-          `0` = 0, `1` = 1, `2` = NA_real_,
-          `3` = NA_real_, `4` = NA_real_,
-          `5` = NA_real_, `6` = NA_real_,
-          `7` = NA_real_
-        )
-    }
-
-    if (option == 2) {
-      poll_codes <-
-        c(
-          `0` = 0, `1` = 1, `2` = 0.5,
-          `3` = NA_real_, `4` = NA_real_,
-          `5` = NA_real_, `6` = NA_real_,
-          `7` = NA_real_
-        )
-    }
-    if (option == 3) {
-      poll_codes <-
-        c(
-          `0` = 0, `1` = 1, `2` = 0.5,
-          `3` = 0.5, `4` = NA_real_,
-          `5` = NA_real_, `6` = NA_real_,
-          `7` = NA_real_
-        )
-    }
 
     scores_matrix <-
       data_set$polls %>%
@@ -59,9 +37,6 @@ for (dataset_name in data_sets) {
     null_votes_index <- apply(scores_matrix, 2, function(x) {
       all(is.na(x))
     })
-    null_councillors_index <- apply(scores_matrix, 1, function(x) {
-      all(is.na(x))
-    })
 
     null_votes <- c(names(which(null_votes_index)))
     save_with_name(
@@ -70,7 +45,9 @@ for (dataset_name in data_sets) {
       compress = "gzip"
     )
 
-
+    null_councillors_index <- apply(scores_matrix, 1, function(x) {
+      all(is.na(x))
+    })
     null_councilors <- c(names(which(null_councillors_index)))
     save_with_name(
       null_councilors,
