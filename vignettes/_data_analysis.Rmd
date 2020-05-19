@@ -1,51 +1,38 @@
 ---
-title: "Politics Analysis"
-output: pdf_document
-output_dir: "../../simdiversity-data/outputs/politics/"
+title: "Politics analysis computation"
+author: "Mattia Egloff"
+date: "18/03/2020"
+output: html_document
 params:
-  selected_option: 1
-  data_path: "../../simdiversity-data/datasets/politics/"
   datasets:
-    - "switzerland_49"
-    - "switzerland_50"
-    - "italy_17"
-    - "italy_18"
-  data_path_pattern: "%s%s/option_%s/02_%s.rds"
+    - "swiss_legislator_49"
+    - "swiss_legislator_50"
+    - "italian_legislator_17"
+    - "italian_legislator_18"
+  selected_option: 2
 ---
 
-# Politics analysis
-
-
-```{r setup, include=FALSE}
+```{r, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+option <- params$selected_option
 ```
 
-```{r load libraries and variables}
-
-library("magrittr")
-library("stringr")
-library("plyr")
-library("dplyr")
-library("parallel")
-cores <- parallel::detectCores()
-options(mc.cores = cores)
-library("Rcpp")
-library("RcppArmadillo")
+## Option: `r I(option)` 
 
 
+```{r include=FALSE}
+devtools::load_all()
+library("tidyverse")
 library("Rtsne")
-
-source("lib/data.R")
-source("lib/distance.R")
-source("lib/plot.R")
+library(simdiversity.entropy)
+library(simdiversity.data.politics)
+library(simdiversity.weighted.mds)
 
 datasets <- params$datasets
-selected_option <- params$selected_option
-data_path <- params$data_path
 ```
 
 Get swsiss and italian data:
-```{r load distances,weight, and base data}
+```{r include=FALSE}
 data <- list()
 dissimilarites <- list()
 weights <- list()
@@ -53,113 +40,69 @@ w_disputedness <- list()
 scores_matrix <- list()
 
 for (dataset in datasets) {
-  print(paste("loading", dataset))
-
-  dissimilarity_path <- sprintf(
-    params$data_path_pattern,
-    data_path,
-    dataset,
-    selected_option,
-    "dissimilarity"
-  )
-  ifelse(file.exists(dissimilarity_path),
-    dissimilarites[[dataset]] <- readRDS(dissimilarity_path),
-    warning(paste(dissimilarity_path, "file not found!\n"))
+  dissimilarites[[dataset]] <- dataset_from_str(
+    paste0(dataset, "__", option, "__D_final")
   )
 
-  weight_path <- sprintf(
-    params$data_path_pattern,
-    data_path,
-    dataset,
-    selected_option,
-    "weights"
-  )
-  ifelse(file.exists(weight_path),
-    weights[[dataset]] <- readRDS(weight_path),
-    warning(paste(weight_path, "file not found!\n"))
+  weights[[dataset]] <- dataset_from_str(
+    paste0(dataset, "__", option, "__weight")
   )
 
-  data_files_path <- sprintf(
-    params$data_path_pattern,
-    data_path,
-    dataset,
-    selected_option,
-    "data"
-  )
-  ifelse(file.exists(data_files_path),
-    data[[dataset]] <- readRDS(data_files_path),
-    warning(paste(data_files_path, "file not found!\n"))
+  data[[dataset]] <- dataset_from_str(dataset)
+
+  w_disputedness[[dataset]] <- dataset_from_str(
+    paste0(
+      dataset, "__", option,
+      "__weighted_vote_disputedness"
+    )
   )
 
-  disputedness_files_path <- sprintf(
-    params$data_path_pattern,
-    data_path,
-    dataset,
-    selected_option,
-    "disputedness"
+  s_matrix <- dataset_from_str(
+    paste0(dataset, "__", option, "__scores_matrix")
   )
-  ifelse(file.exists(disputedness_files_path),
-    w_disputedness[[dataset]] <- readRDS(disputedness_files_path),
-    warning(paste(disputedness_files_path, "file not found!\n"))
+  null_votes <- dataset_from_str(
+    paste0(dataset, "__", option, "__null_votes")
   )
-
-  scores_matrix_files_path <- sprintf(
-    params$data_path_pattern,
-    data_path,
-    dataset,
-    selected_option,
-    "scores_matrix"
+  null_councilors <- dataset_from_str(
+    paste0(dataset, "__", option, "__null_councilors")
   )
-  ifelse(file.exists(scores_matrix_files_path),
-    scores_matrix[[dataset]] <- readRDS(scores_matrix_files_path),
-    warning(paste(scores_matrix_files_path, "file not found!\n"))
-  )
+  if (!is_empty(null_votes)) {
+    s_matrix <-
+      s_matrix[, !colnames(s_matrix) %in% null_votes]
+  }
+  if (!is_empty(null_councilors)) {
+    s_matrix <-
+      s_matrix[!rownames(s_matrix) %in% null_councilors, ]
+  }
+  scores_matrix[[dataset]] <- s_matrix
 }
+
 
 results <- list()
 ```
 
+### Basic infos
 
-```{r basic numbers}
+```{r}
 for (dataset in datasets) {
   print(paste(
-    "Dataset :", dataset, "contains:",
-    nrow(scores_matrix[[dataset]]), "Councillors",
-    ncol(scores_matrix[[dataset]]), "Votes"
+    "Dataset :", dataset, "\ncontains:\n -",
+    nrow(scores_matrix[[dataset]]), "Councillors\n -",
+    ncol(scores_matrix[[dataset]]), "Votes\n\n"
   ))
-
-  if (nrow(data[[dataset]]$Scores) > nrow(data[[dataset]]$Councillors)) {
-    data[[dataset]]$Scores <- data[[dataset]]$Scores[
-      rownames(data[[dataset]]$Scores) %in% rownames(data[[dataset]]$Councillors),
-    ]
-  }
-
-  if (nrow(data[[dataset]]$Scores) < nrow(data[[dataset]]$Councillors)) {
-    data[[dataset]]$Councillors <- data[[dataset]]$Councillors[
-      rownames(data[[dataset]]$Councillors) %in% rownames(data[[dataset]]$Scores),
-    ]
-  }
-
-
-  if (ncol(data[[dataset]]$Scores) > nrow(data[[dataset]]$Votes)) {
-    data[[dataset]]$Scores <- data[[dataset]]$Scores[
-      ,
-      which(colnames(data[[dataset]]$Scores) %in% rownames(data[[dataset]]$Votes))
-    ]
-  }
 }
 ```
 
 # Vote means and variance
 
 
-```{r plot vote variance, fig.show='hold', fig.width=12, fig.height=8, out.width="50%"}
+```{r}
 for (dataset in datasets) {
   means_and_vars <- column_means_and_vars(scores_matrix[[dataset]])
   table(means_and_vars$Mean_votes)
   hist(
     means_and_vars$Votes_variance,
-    main = paste(dataset, "-", "option", selected_option),
+    main = paste(dataset, "-", "option", option),
     cex.lab = 2,
     xlab = expression("vote variance " * v[l]),
     cex.main = 2,
@@ -170,7 +113,7 @@ for (dataset in datasets) {
 
 # Vote disputedness
 
-```{r plot vote disputedness, fig.width=12, fig.height=8, fig.keep='hold', out.width="50%"}
+```{r}
 
 for (dataset in datasets) {
   hist(
@@ -180,7 +123,7 @@ for (dataset in datasets) {
     ylab = "count",
     cex.axis = 2,
     cex.lab = 2,
-    main = paste(dataset, "-", "option", selected_option)
+    main = paste(dataset, "-", "option", option)
   )
 }
 ```
@@ -189,10 +132,10 @@ for (dataset in datasets) {
 
 # MDS
 
-```{r weighted mds}
+```{r }
 
 for (dataset in datasets) {
-  results[[dataset]] <- weighted_mds(
+  results[[dataset]]$mds <- weighted_mds(
     dissimilarites[[dataset]], weights[[dataset]]
   )
 }
@@ -200,17 +143,17 @@ for (dataset in datasets) {
 
 \newpage
 ## MDS by Gender Dimension 1 and 2
-```{r plot mds: gender dim 1 2, fig.width=20, fig.height=20, fig.show = "hold", fig.align = "default", out.width="50%"}
+```{r }
 
 for (dataset in datasets) {
   gender <- data[[dataset]]$Councillors$gender
   labels <- data[[dataset]]$Councillors$names
   plot.mds(
-    results[[dataset]]$mds.Xtilde, results[[dataset]]$mds.lambda,
-    c(1, 2), weights[[dataset]],
+    results[[dataset]]$mds,
+    c(1, 2),
     group_by = gender,
     labels = labels,
-    main = paste("Gender", gsub("_", " ", dataset), "Option", selected_option)
+    main = paste("Gender", gsub("_", " ", dataset), "Option", option)
   )
 }
 ```
@@ -218,18 +161,18 @@ for (dataset in datasets) {
 \newpage
 ## MDS by Gender Dimension 3 and 4
 
-```{r plot mds: gender dim 3 4, fig.width=20, fig.height=20, fig.show = "hold", fig.align = "default", out.width="50%"}
+```{r }
 
 for (dataset in datasets) {
   gender <- data[[dataset]]$Councillors$gender
   labels <- data[[dataset]]$Councillors$names
 
   plot.mds(
-    results[[dataset]]$mds.Xtilde, results[[dataset]]$mds.lambda,
-    c(3, 4), weights[[dataset]],
+    results[[dataset]]$mds,
+    c(3, 4),
     group_by = gender,
     labels = labels,
-    main = paste("Gender", gsub("_", " ", dataset), "Option", selected_option)
+    main = paste("Gender", gsub("_", " ", dataset), "Option", option)
   )
 }
 ```
@@ -237,18 +180,18 @@ for (dataset in datasets) {
 \newpage
 ## MDS by Party Dimension 1 and 2
 
-```{r plot mds: party dim 1 2, fig.width=20, fig.height=20, fig.show = "hold", fig.align = "default", out.width="50%"}
+```{r }
 
 for (dataset in datasets) {
   party <- data[[dataset]]$Councillors$party
   labels <- data[[dataset]]$Councillors$names
 
   plot.mds(
-    results[[dataset]]$mds.Xtilde, results[[dataset]]$mds.lambda,
-    c(1, 2), weights[[dataset]],
+        results[[dataset]]$mds,
+    c(1, 2),
     group_by = party,
     labels = labels,
-    main = paste("Party", gsub("_", " ", dataset), "Option", selected_option)
+    main = paste("Party", gsub("_", " ", dataset), "Option", option)
   )
 }
 ```
@@ -256,18 +199,18 @@ for (dataset in datasets) {
 \newpage
 ## MDS by Party Dimension 3 and 4
 
-```{r plot mds: party dim 3 4, fig.width=20, fig.height=20, fig.show = "hold", fig.align = "default", out.width="50%"}
+```{r }
 
 for (dataset in datasets) {
   party <- data[[dataset]]$Councillors$party
   labels <- data[[dataset]]$Councillors$names
 
   plot.mds(
-    results[[dataset]]$mds.Xtilde, results[[dataset]]$mds.lambda,
-    c(3, 4), weights[[dataset]],
+        results[[dataset]]$mds,
+    c(3, 4),
     group_by = party,
     labels = labels,
-    main = paste("Party", gsub("_", " ", dataset), "Option", selected_option)
+    main = paste("Party", gsub("_", " ", dataset), "Option", option)
   )
 }
 ```
@@ -275,17 +218,17 @@ for (dataset in datasets) {
 \newpage
 ## MDS by Region Dimension 1 and 2
 
-```{r plot mds: region, fig.show='hold', fig.width=20, fig.height=20, fig.align = "default", out.width="50%"}
+```{r }
 for (dataset in datasets) {
   region <- data[[dataset]]$Councillors$region
   labels <- data[[dataset]]$Councillors$names
 
   plot.mds(
-    results[[dataset]]$mds.Xtilde, results[[dataset]]$mds.lambda,
-    c(1, 2), weights[[dataset]],
+    results[[dataset]]$mds,
+    c(1, 2)
     group_by = region,
     labels = labels,
-    main = paste("Region", gsub("_", " ", dataset), "Option", selected_option)
+    main = paste("Region", gsub("_", " ", dataset), "Option", option)
   )
 }
 ```
@@ -293,7 +236,7 @@ for (dataset in datasets) {
 \newpage
 ## MDS by Region Dimension 3 and 4
 
-```{r plot mds: region dim 3 4, fig.show='hold', fig.width=20, fig.height=20, fig.align = "default", out.width="50%"}
+```{r }
 for (dataset in datasets) {
   region <- data[[dataset]]$Councillors$region
   labels <- data[[dataset]]$Councillors$names
@@ -303,7 +246,7 @@ for (dataset in datasets) {
     c(3, 4), weights[[dataset]],
     group_by = region,
     labels = labels,
-    main = paste("Region", gsub("_", " ", dataset), "Option", selected_option)
+    main = paste("Region", gsub("_", " ", dataset), "Option", option)
   )
 }
 ```
@@ -312,7 +255,7 @@ for (dataset in datasets) {
 \newpage
 ## TSNE
 
-```{r tsne, fig.show='hold', fig.width=20, fig.height=20, fig.align = "default", out.width="50%"}
+```{r }
 for (dataset in datasets) {
   party <- data[[dataset]]$Councillors$party
   labels <- data[[dataset]]$Councillors$names
@@ -337,7 +280,7 @@ for (dataset in datasets) {
 
 # Party similarity
 
-```{r by parties}
+```{r }
 ################ betwen parties ################
 
 for (dataset in datasets) {
@@ -351,7 +294,7 @@ for (dataset in datasets) {
 
 # Consensual Votes
 
-```{r consensual votes}
+```{r }
 
 for (dataset in datasets) {
   scores <- scores_matrix[[dataset]]
@@ -368,7 +311,7 @@ for (dataset in datasets) {
 
 # Entropy
 
-```{r entropy}
+```{r }
 ############ Entropies on the final dissimilarities d ############
 for (dataset in datasets) {
   results[[dataset]]$entropy <- entropy(
@@ -380,7 +323,7 @@ for (dataset in datasets) {
 
 # Effective Entropy
 
-```{r effective entropy}
+```{r }
 
 
 for (dataset in datasets) {
@@ -392,7 +335,7 @@ results[[dataset]]$effective_entropy <- effective_entropy(
 
 ```
 
-```{r effective entropy plots, fig.show='hold', fig.width=20, fig.height=20, out.width="33%"}
+```{r }
 # ########### PLOTS INTERESSANTS ###
 # ## plot(beta_rel,rhoS[,i])
 # ## ou bien, pour aller plus vite
@@ -475,20 +418,5 @@ for (dataset in datasets) {
 # }
 ```
 
-```{r}
-output_path = paste0(data_path, "/option_", selected_option, "/")
-if (!dir.exists(output_path)) dir.create(output_path, recursive = TRUE)
 
-saveRDS(
-  results,
-    paste0(
-      output_path, "03_results.rds"
-  )
-)
-```
 
-```{r clean, include=FALSE}
-rm(list = ls(all.names = TRUE))
-gc()
-gc()
-```

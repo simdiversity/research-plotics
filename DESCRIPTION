@@ -18,8 +18,11 @@ Imports:
     magrittr,
     tibble,
     dplyr,
-    here
+    here,
+    golem
 Depends: 
     R (>= 3.50)
 RoxygenNote: 7.1.0
-
+Suggests: 
+    knitr
+VignetteBuilder: knitr

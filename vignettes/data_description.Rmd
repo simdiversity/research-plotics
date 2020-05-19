@@ -1,0 +1,103 @@
+---
+title: "data_description"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{data_description}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+knitr::opts_chunk$set(echo = FALSE)
+library(simdiversity.research.politics)
+datasets <- c(
+  "swiss_legislator_49", 
+  "swiss_legislator_50",
+  "italian_legislator_17",
+  "italian_legislator_18"
+)
+datasets
+```
+
+```{r , include=FALSE}
+params <- list(selected_dataset = 1, selected_option = 1, datasets = datasets)
+```
+
+```{r child="_data_description.Rmd"}
+```
+
+
+```{r , include=FALSE}
+params <- list(selected_dataset = 1, selected_option = 2, datasets = datasets)
+```
+
+```{r child="_data_description.Rmd"}
+```
+
+
+
+```{r , include=FALSE}
+params <- list(selected_dataset = 1, selected_option = 3, datasets = datasets)
+```
+
+```{r child="_data_description.Rmd"}
+```
+
+
+
+```{r , include=FALSE}
+params <- list(selected_dataset = 2, selected_option = 1, datasets = datasets)
+```
+
+```{r child="_data_description.Rmd"}
+```
+
+
+```{r , include=FALSE}
+params <- list(selected_dataset = 2, selected_option = 2, datasets = datasets)
+```
+
+```{r child="_data_description.Rmd"}
+```
+
+
+```{r , include=FALSE}
+params <- list(selected_dataset = 2, selected_option = 3, datasets = datasets)
+```
+
+```{r child="_data_description.Rmd"}
+```
+
+
+
+```{r , include=FALSE}
+params <- list(selected_dataset = 3, selected_option = 1, datasets = datasets)
+```
+
+```{r child="_data_description.Rmd"}
+```
+
+
+```{r , include=FALSE}
+params <- list(selected_dataset = 3, selected_option = 2, datasets = datasets)
+```
+
+```{r child="_data_description.Rmd"}
+```
+
+
+
+```{r , include=FALSE}
+params <- list(selected_dataset = 3, selected_option = 3, datasets = datasets)
+```
+
+```{r child="_data_description.Rmd"}
+```
+

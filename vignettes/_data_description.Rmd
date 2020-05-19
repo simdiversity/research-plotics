@@ -1,0 +1,128 @@
+---
+title: "Politics distance computation"
+author: "Mattia Egloff"
+date: "18/03/2020"
+output: html_document
+params:
+  datasets:
+  - "swiss_legislator_49"
+  - "swiss_legislator_50"
+  - "italian_legislator_17"
+  - "italian_legislator_18"
+selected_dataset: 1
+selected_option: 2
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+devtools::load_all()
+library(tidyverse)
+data_set_name <- params$datasets[[params$selected_dataset]]
+```
+
+## Dataset: `r I(data_set_name)` Option: `r I(params$selected_option)` 
+
+```{r include=FALSE}
+
+scores_matrix <- dataset_from_str(
+  paste0(data_set_name, "__", params$selected_option, "__scores_matrix")
+)
+null_votes <- dataset_from_str(
+  paste0(data_set_name, "__", params$selected_option, "__null_votes")
+)
+null_councilors <- dataset_from_str(
+  paste0(data_set_name, "__", params$selected_option, "__null_councilors")
+)
+D_final <- dataset_from_str(
+  paste0(data_set_name, "__", params$selected_option, "__D_final")
+)
+f <- dataset_from_str(
+  paste0(data_set_name, "__", params$selected_option, "__weight")
+)
+weighted_vote_disputedness <- dataset_from_str(
+  paste0(data_set_name, "__", params$selected_option, 
+         "__weighted_vote_disputedness")
+)
+  print(paste(
+    "Dataset :", data_set_name, "contains:",
+    nrow(scores_matrix), "Councillors",
+    ncol(scores_matrix), "Votes"
+  ))
+```
+
+### Dealing with NA
+
+
+```{r echo=TRUE}
+scores_matrix %>%
+  complete.cases() %>% sum()
+scores_matrix %>%
+  t() %>% complete.cases() %>% sum()
+scores_matrix %>%
+  {sum(is.na(.)) * 100 / (nrow(.) * ncol(.))} %>%
+  round(digits = 2) %>% paste0("% of NA")
+scores_matrix %>%
+  is.na() %>% {round(colSums(.)/nrow(.), 3)} %>% table %>%
+  plot(xlab = "% missing in columns", ylab = "frequency")
+scores_matrix %>%
+  is.na() %>% {round(rowSums(.)/ncol(.), 3)} %>% table %>%
+  plot(xlab = "% missing in rows", ylab = "frequency")
+```
+
+```{r eval=FALSE, include=FALSE}
+# is_value <- factor(c("Yes", "No"))
+# scores_matrix %>%
+#   as_tibble(rownames = "i_id")
+#   pivot_longer(-i_id, names_to = "v_id", values_to = "element") %>%
+#   ggplot(aes(y = v_id, x = i_id, fill = is_value[element])) +
+#   geom_tile(size = 20, width = 4) +
+#   scale_x_discrete(expand = c(0,0)) +
+#   scale_y_discrete(expand = c(0,0)) +
+#   scale_fill_manual(values = c("black", "red")) +
+#   theme(axis.text.x = element_text(size = rel(.4), angle = 90)) +
+#   theme(axis.title.y = element_text(size = rel(.4), angle = 90)) +
+#   ggtitle("Hitmap NA values of scores_matrix")
+```
+
+
+Remove all lines and columns that contain only NA
+
+```{r echo=TRUE}
+
+if(!is_empty(null_votes)) scores_matrix <- 
+  scores_matrix[, !colnames(scores_matrix) %in% null_votes]
+
+if(!is_empty(null_councilors)) scores_matrix <- 
+  scores_matrix[!rownames(scores_matrix) %in% null_councilors,]
+dim(scores_matrix)
+n <- nrow( scores_matrix )
+p <- ncol( scores_matrix )
+```
+
+### Weights
+
+```{r echo=FALSE}
+if (any(f <= 0)) warning("Some f are 0 or negative")
+if (any(f >= 1)) warning("Some f are 1 or bigger")
+if (!sum(f) == 1) warning("The sum of the f is not 1")
+hist(table(f), main = "f", xlab = "")
+boxplot(f, main = "f")
+```
+
+### Vote Disputedness
+
+
+```{r echo=FALSE}
+hist(table(weighted_vote_disputedness),
+     main = "Weighted vote disputedness", xlab = ""
+)
+boxplot(weighted_vote_disputedness,
+        main = "Weighted vote disputedness")
+
+```
+
+
+
