@@ -30,7 +30,7 @@ datasets
 params <- list(selected_dataset = 1, selected_option = 1, datasets = datasets)
 ```
 
-```{r child="_data_description.Rmd"}
+```{r child="../inst/sub_vignettes/_data_description.Rmd"}
 ```
 
 
@@ -38,7 +38,7 @@ params <- list(selected_dataset = 1, selected_option = 1, datasets = datasets)
 params <- list(selected_dataset = 1, selected_option = 2, datasets = datasets)
 ```
 
-```{r child="_data_description.Rmd"}
+```{r child="../inst/sub_vignettes/_data_description.Rmd"}
 ```
 
 
@@ -47,7 +47,7 @@ params <- list(selected_dataset = 1, selected_option = 2, datasets = datasets)
 params <- list(selected_dataset = 1, selected_option = 3, datasets = datasets)
 ```
 
-```{r child="_data_description.Rmd"}
+```{r child="../inst/sub_vignettes/_data_description.Rmd"}
 ```
 
 
@@ -56,7 +56,7 @@ params <- list(selected_dataset = 1, selected_option = 3, datasets = datasets)
 params <- list(selected_dataset = 2, selected_option = 1, datasets = datasets)
 ```
 
-```{r child="_data_description.Rmd"}
+```{r child="../inst/sub_vignettes/_data_description.Rmd"}
 ```
 
 
@@ -64,7 +64,7 @@ params <- list(selected_dataset = 2, selected_option = 1, datasets = datasets)
 params <- list(selected_dataset = 2, selected_option = 2, datasets = datasets)
 ```
 
-```{r child="_data_description.Rmd"}
+```{r child="../inst/sub_vignettes/_data_description.Rmd"}
 ```
 
 
@@ -72,7 +72,7 @@ params <- list(selected_dataset = 2, selected_option = 2, datasets = datasets)
 params <- list(selected_dataset = 2, selected_option = 3, datasets = datasets)
 ```
 
-```{r child="_data_description.Rmd"}
+```{r child="../inst/sub_vignettes/_data_description.Rmd"}
 ```
 
 
@@ -81,7 +81,7 @@ params <- list(selected_dataset = 2, selected_option = 3, datasets = datasets)
 params <- list(selected_dataset = 3, selected_option = 1, datasets = datasets)
 ```
 
-```{r child="_data_description.Rmd"}
+```{r child="../inst/sub_vignettes/_data_description.Rmd"}
 ```
 
 
@@ -89,7 +89,7 @@ params <- list(selected_dataset = 3, selected_option = 1, datasets = datasets)
 params <- list(selected_dataset = 3, selected_option = 2, datasets = datasets)
 ```
 
-```{r child="_data_description.Rmd"}
+```{r child="../inst/sub_vignettes/_data_description.Rmd"}
 ```
 
 
@@ -98,6 +98,6 @@ params <- list(selected_dataset = 3, selected_option = 2, datasets = datasets)
 params <- list(selected_dataset = 3, selected_option = 3, datasets = datasets)
 ```
 
-```{r child="_data_description.Rmd"}
+```{r child="../inst/sub_vignettes/_data_description.Rmd"}
 ```
 
