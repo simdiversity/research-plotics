@@ -27,11 +27,11 @@ datasets
 ```
 
 
-```{r , include=FALSE}
+```{r , include=FALSE, include=FALSE}
 params <- list(selected_option = 1, datasets = datasets)
 ```
 
-```{r child="../inst/sub_vignettes/_data_analysis.Rmd"}
+```{r eval=FALSE, child="../inst/sub_vignettes/_data_analysis.Rmd", include=FALSE}
 ```
 
 
@@ -39,7 +39,7 @@ params <- list(selected_option = 1, datasets = datasets)
 params <- list(selected_option = 2, datasets = datasets)
 ```
 
-```{r child="../inst/sub_vignettes/_data_analysis.Rmd"}
+```{r eval=FALSE, child="../inst/sub_vignettes/_data_analysis.Rmd", include=FALSE}
 ```
 
 
@@ -47,6 +47,6 @@ params <- list(selected_option = 2, datasets = datasets)
 params <- list(selected_option = 3, datasets = datasets)
 ```
 
-```{r child="../inst/sub_vignettes/_data_analysis.Rmd"}
+```{r eval=FALSE, child="../inst/sub_vignettes/_data_analysis.Rmd", include=FALSE}
 ```
 
