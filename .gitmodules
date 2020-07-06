@@ -1,0 +1,3 @@
+[submodule "inst/Nonconvex-Euclidean-Distance-Geometry-Problem-Solver"]
+	path = inst/Nonconvex-Euclidean-Distance-Geometry-Problem-Solver
+	url = git@github.com:simdiversity/Nonconvex-Euclidean-Distance-Geometry-Problem-Solver.git
