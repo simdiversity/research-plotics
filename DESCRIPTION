@@ -17,9 +17,14 @@ Imports:
     rmarkdown,
     magrittr,
     tibble,
+    tidyverse,
     dplyr,
     here,
-    golem
+    golem,
+    filling,
+    parallelDist,
+    R.matlab,
+    qpdf
 Depends: 
     R (>= 3.50)
 RoxygenNote: 7.1.0

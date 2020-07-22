@@ -3,3 +3,4 @@
 ^Makefile$
 ^Jenkinsfile$
 ^scripts$
+^inst/Nonconvex-Euclidean-Distance-Geometry-Problem-Solver/.*$

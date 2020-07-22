@@ -4,12 +4,12 @@
 \alias{group_similarity}
 \title{Group dissimilarity}
 \usage{
-group_similarity(dissimilarity, weights, groups)
+group_similarity(dissimilarity, weight, groups)
 }
 \arguments{
 \item{dissimilarity}{A dissimilarity between individuals}
 
-\item{weights}{the weights of the individuals}
+\item{weight}{the weights of the individuals}
 
 \item{groups}{a group membership vector}
 }

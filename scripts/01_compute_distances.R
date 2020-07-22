@@ -1,6 +1,7 @@
 library(here)
 library(magrittr)
 library(dplyr)
+library(R.matlab)
 if (!require(simdiversity.data.politics))
 devtools::install_github(simdiversity/data-politics, auth_token = "8a5922b49bcc3a395ea3ea0c026c48518bb65d2d")
 if (!require(simdiversity.entropy))
@@ -59,6 +60,12 @@ for (dataset_name in data_sets) {
     n <- nrow(scores_matrix)
     p <- ncol(scores_matrix)
 
+    save_with_name(
+      scores_matrix,
+      paste0(dataset_name, "__", option, "__scores"),
+      format = "csv"
+    )
+
     weight <- validity_weight(scores_matrix)
     save_with_name(
       weight,
@@ -66,21 +73,56 @@ for (dataset_name in data_sets) {
       compress = "gzip"
     )
 
-    weighted_vote_disputedness <- disputedness(
-      scores_matrix, weight
-    )
-    save_with_name( weighted_vote_disputedness,
-      paste0(dataset_name, "__", option, "__weighted_vote_disputedness"),
-      compress = "gzip"
+
+
+
+    D_l1 <- dissimilarity_L1(scores_matrix)
+    save_with_name( D_l1,
+                    paste0(dataset_name, "__", option, "__D_l1"),
+                    format = "csv"
     )
 
-    D_final <- estimate_distance(
-      scores_matrix, weight, weighted_vote_disputedness
-    )
-    save_with_name(D_final,
-      paste0(dataset_name, "__", option, "__D_final"),
-      compress = "xz"
-    )
+
+    #  weighted_vote_disputedness <- dataset_from_str(
+    #    paste0(
+    #      dataset_name, "__", option,
+    #      "__weighted_vote_disputedness"
+    #    )
+    #  )
+    # #
+    #  weighted_vote_disputedness <- disputedness(
+    #    scores_matrix, weight
+    #  )
+    #  save_with_name( weighted_vote_disputedness,
+    #                  paste0(dataset_name, "__", option, "__weighted_vote_disputedness"),
+    #                  compress = "gzip"
+    #  )
+    # #
+    #  D_final <- estimate_distance(
+    #    scores_matrix, weight, weighted_vote_disputedness
+    #  )
+    #
+    #  save_with_name(D_final,
+    #    paste0(dataset_name, "__", option, "__D_final__weighted"),
+    #    compress = "xz"
+    #  )
+    #
+    #  unweighted_vote_disputedness <- disputedness(
+    #    scores_matrix, weight
+    #  )
+    #  save_with_name( unweighted_vote_disputedness,
+    #                  paste0(dataset_name, "__", option, "__unweighted_vote_disputedness"),
+    #                  compress = "gzip"
+    #  )
+    #
+    #  D_final_unweighted <- estimate_distance(
+    #    scores_matrix, weight, unweighted_vote_disputedness
+    #  )
+    #
+    #  save_with_name(D_final_unweighted,
+    #                 paste0(dataset_name, "__", option, "__D_final__unweighted"),
+    #                 compress = "xz"
+    #  )
 
   gc()
   }

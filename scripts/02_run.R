@@ -92,8 +92,8 @@ if (is.null(args)) {
     }
   }
   original_encoding <- options(encoding = "UTF-8")
-
   options(encoding = original_encoding)
 }
+
 
 

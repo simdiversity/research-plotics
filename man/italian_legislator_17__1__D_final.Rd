@@ -3,7 +3,7 @@
 \docType{data}
 \name{italian_legislator_17__1__D_final}
 \alias{italian_legislator_17__1__D_final}
-\title{italian_legislator_17 1 D_final}
+\title{italian_legislator_17__1__D_final}
 \format{
 An object of class \code{matrix} (inherits from \code{array}) with 664 rows and 664 columns.
 }
@@ -11,6 +11,6 @@ An object of class \code{matrix} (inherits from \code{array}) with 664 rows and 
 italian_legislator_17__1__D_final
 }
 \description{
-italian_legislator_17 1 D_final
+italian_legislator_17__1__D_final
 }
 \keyword{datasets}

@@ -3,7 +3,7 @@
 \docType{data}
 \name{italian_legislator_17__1__weight}
 \alias{italian_legislator_17__1__weight}
-\title{italian_legislator_17 1 weight}
+\title{italian_legislator_17__1__weight}
 \format{
 An object of class \code{numeric} of length 664.
 }
@@ -11,6 +11,6 @@ An object of class \code{numeric} of length 664.
 italian_legislator_17__1__weight
 }
 \description{
-italian_legislator_17 1 weight
+italian_legislator_17__1__weight
 }
 \keyword{datasets}

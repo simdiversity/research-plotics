@@ -3,7 +3,7 @@
 \docType{data}
 \name{swiss_legislator_49__3__null_councilors}
 \alias{swiss_legislator_49__3__null_councilors}
-\title{swiss_legislator_49 3 null_councilors}
+\title{swiss_legislator_49__3__null_councilors}
 \format{
 An object of class \code{character} of length 0.
 }
@@ -11,6 +11,6 @@ An object of class \code{character} of length 0.
 swiss_legislator_49__3__null_councilors
 }
 \description{
-swiss_legislator_49 3 null_councilors
+swiss_legislator_49__3__null_councilors
 }
 \keyword{datasets}

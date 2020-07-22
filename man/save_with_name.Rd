@@ -2,14 +2,17 @@
 % Please edit documentation in R/helper_functions.R
 \name{save_with_name}
 \alias{save_with_name}
-\title{Data name string to dataset}
+\title{importFrom utils write.csv2
+ Data name string to dataset}
 \usage{
-save_with_name(variable, new_name, compress = "gzip")
+save_with_name(variable, new_name, format = "rda", compress = "gzip")
 }
 \arguments{
 \item{variable}{the original variable}
 
 \item{new_name}{name of the data}
+
+\item{format}{"rda" or "csv"}
 
 \item{compress}{compression type see save}
 }

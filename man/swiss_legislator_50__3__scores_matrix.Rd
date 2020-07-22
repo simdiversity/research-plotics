@@ -3,7 +3,7 @@
 \docType{data}
 \name{swiss_legislator_50__3__scores_matrix}
 \alias{swiss_legislator_50__3__scores_matrix}
-\title{swiss_legislator_50 3 scores_matrix}
+\title{swiss_legislator_50__3__scores_matrix}
 \format{
 An object of class \code{matrix} (inherits from \code{array}) with 228 rows and 4452 columns.
 }
@@ -11,6 +11,6 @@ An object of class \code{matrix} (inherits from \code{array}) with 228 rows and 
 swiss_legislator_50__3__scores_matrix
 }
 \description{
-swiss_legislator_50 3 scores_matrix
+swiss_legislator_50__3__scores_matrix
 }
 \keyword{datasets}

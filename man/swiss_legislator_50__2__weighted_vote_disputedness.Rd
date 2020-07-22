@@ -3,7 +3,7 @@
 \docType{data}
 \name{swiss_legislator_50__2__weighted_vote_disputedness}
 \alias{swiss_legislator_50__2__weighted_vote_disputedness}
-\title{swiss_legislator_50 2 weighted_vote_disputedness}
+\title{swiss_legislator_50__2__weighted_vote_disputedness}
 \format{
 An object of class \code{numeric} of length 4452.
 }
@@ -11,6 +11,6 @@ An object of class \code{numeric} of length 4452.
 swiss_legislator_50__2__weighted_vote_disputedness
 }
 \description{
-swiss_legislator_50 2 weighted_vote_disputedness
+swiss_legislator_50__2__weighted_vote_disputedness
 }
 \keyword{datasets}

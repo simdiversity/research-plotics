@@ -3,7 +3,7 @@
 \docType{data}
 \name{swiss_legislator_50__2__D_final}
 \alias{swiss_legislator_50__2__D_final}
-\title{swiss_legislator_50 2 D_final}
+\title{swiss_legislator_50__2__D_final}
 \format{
 An object of class \code{matrix} (inherits from \code{array}) with 228 rows and 228 columns.
 }
@@ -11,6 +11,6 @@ An object of class \code{matrix} (inherits from \code{array}) with 228 rows and 
 swiss_legislator_50__2__D_final
 }
 \description{
-swiss_legislator_50 2 D_final
+swiss_legislator_50__2__D_final
 }
 \keyword{datasets}

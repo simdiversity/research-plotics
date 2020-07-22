@@ -69,12 +69,17 @@ for (dataset in datasets) {
   if (!is_empty(null_votes)) {
     s_matrix <-
       s_matrix[, !colnames(s_matrix) %in% null_votes]
+     data[[dataset]]$voting_items <- 
+       data[[dataset]]$voting_items %>% filter(v_id %in%  colnames(s_matrix))
   }
   if (!is_empty(null_councilors)) {
     s_matrix <-
       s_matrix[!rownames(s_matrix) %in% null_councilors, ]
+      data[[dataset]]$members_of_parliment <- 
+        data[[dataset]]$members_of_parliment %>% filter(i_id %in% rownames(s_matrix))
   }
   scores_matrix[[dataset]] <- s_matrix
+
 }
 
 
@@ -143,12 +148,15 @@ for (dataset in datasets) {
 
 \newpage
 ## MDS by Gender Dimension 1 and 2
-```{r }
+```{r, out.width="50%", fig.width=14, fig.height=14}
 
 for (dataset in datasets) {
-  gender <- data[[dataset]]$Councillors$gender
-  labels <- data[[dataset]]$Councillors$names
-  plot.mds(
+  selection <-
+    data[[dataset]]$members_of_parliment %>% select(i_id, first_name, last_name, gender) %>% distinct()
+  gender <-selection$gender
+  labels <- paste(selection$first_name, selection$last_name)
+
+  plot(
     results[[dataset]]$mds,
     c(1, 2),
     group_by = gender,
@@ -161,13 +169,14 @@ for (dataset in datasets) {
 \newpage
 ## MDS by Gender Dimension 3 and 4
 
-```{r }
+```{r, fig.width=12, fig.height=12}
 
 for (dataset in datasets) {
-  gender <- data[[dataset]]$Councillors$gender
-  labels <- data[[dataset]]$Councillors$names
-
-  plot.mds(
+  selection <-
+    data[[dataset]]$members_of_parliment %>% select(i_id, first_name, last_name, gender) %>% distinct()
+  gender <- selection$gender
+  labels <- paste(selection$first_name, selection$last_name)
+  plot(
     results[[dataset]]$mds,
     c(3, 4),
     group_by = gender,
@@ -180,14 +189,20 @@ for (dataset in datasets) {
 \newpage
 ## MDS by Party Dimension 1 and 2
 
-```{r }
+```{r , fig.width=12, fig.height=12}
 
 for (dataset in datasets) {
-  party <- data[[dataset]]$Councillors$party
-  labels <- data[[dataset]]$Councillors$names
+  selection <-
+    data[[dataset]]$members_of_parliment %>% select(i_id, first_name, last_name, gender) %>% distinct()
+  labels <- paste(selection$first_name, selection$last_name)
 
-  plot.mds(
-        results[[dataset]]$mds,
+  party <- 
+    data[[dataset]]$members_of_parliment$parties %>% 
+    map(~ .x$party_name[which(max(.x$end_date - .x$start_date) == .x$end_date - .x$start_date)]) %>% 
+    unlist
+
+  plot(
+    results[[dataset]]$mds,
     c(1, 2),
     group_by = party,
     labels = labels,
@@ -199,14 +214,21 @@ for (dataset in datasets) {
 \newpage
 ## MDS by Party Dimension 3 and 4
 
-```{r }
+```{r , fig.width=12, fig.height=12}
 
 for (dataset in datasets) {
-  party <- data[[dataset]]$Councillors$party
-  labels <- data[[dataset]]$Councillors$names
+  
+  party <- 
+    data[[dataset]]$members_of_parliment$parties %>% 
+    map(~ .x$party_name[which(max(.x$end_date - .x$start_date) == .x$end_date - .x$start_date)]) %>% map(~ ifelse(is.null(.x), "Other", .x)) %>%
+    unlist
+  
+  selection <-
+    data[[dataset]]$members_of_parliment %>% select(i_id, first_name, last_name, gender) %>% distinct()
+  labels <- paste(selection$first_name, selection$last_name)
 
-  plot.mds(
-        results[[dataset]]$mds,
+  plot(
+    results[[dataset]]$mds,
     c(3, 4),
     group_by = party,
     labels = labels,
@@ -218,14 +240,20 @@ for (dataset in datasets) {
 \newpage
 ## MDS by Region Dimension 1 and 2
 
-```{r }
+```{r , fig.width=12, fig.height=12}
 for (dataset in datasets) {
-  region <- data[[dataset]]$Councillors$region
-  labels <- data[[dataset]]$Councillors$names
+  if ("canton" %in% colnames(data[[dataset]]$members_of_parliment)) {
+    region <- data[[dataset]]$members_of_parliment$canton
+  } else {
+  region <- data[[dataset]]$members_of_parliment$region
+  }
+  selection <-
+    data[[dataset]]$members_of_parliment %>% select(i_id, first_name, last_name, gender) %>% distinct()
+  labels <- paste(selection$first_name, selection$last_name)
 
-  plot.mds(
+  plot(
     results[[dataset]]$mds,
-    c(1, 2)
+    c(1, 2),
     group_by = region,
     labels = labels,
     main = paste("Region", gsub("_", " ", dataset), "Option", option)
@@ -236,14 +264,20 @@ for (dataset in datasets) {
 \newpage
 ## MDS by Region Dimension 3 and 4
 
-```{r }
+```{r fig.width=12, fig.height=12}
 for (dataset in datasets) {
-  region <- data[[dataset]]$Councillors$region
-  labels <- data[[dataset]]$Councillors$names
+  if ("canton" %in% colnames(data[[dataset]]$members_of_parliment)) {
+    region <- data[[dataset]]$members_of_parliment$canton
+  } else {
+  region <- data[[dataset]]$members_of_parliment$region
+  }
+  selection <-
+    data[[dataset]]$members_of_parliment %>% select(i_id, first_name, last_name, gender) %>% distinct()
+  labels <- paste(selection$first_name, selection$last_name)
 
-  plot.mds(
-    results[[dataset]]$mds.Xtilde, results[[dataset]]$mds.lambda,
-    c(3, 4), weights[[dataset]],
+  plot(
+    results[[dataset]]$mds,
+    c(3, 4),
     group_by = region,
     labels = labels,
     main = paste("Region", gsub("_", " ", dataset), "Option", option)
@@ -255,22 +289,114 @@ for (dataset in datasets) {
 \newpage
 ## TSNE
 
-```{r }
+```{r , fig.width=12, fig.height=12}
+plot_tsne <- function(x, group_by, weights,...) {
+  title <- c()
+  colors <- grDevices::rainbow(length(unique(group_by)), alpha = .9)
+  names(colors) <- stringr::str_sort(unique(group_by), numeric = TRUE)
+  # check for additional function arguments
+  if ( length(list(...)) ) {
+    Lst <- list(...)
+    if ( !is.null(Lst$zlim) ) {
+      min <- Lst$zlim[1]
+      max <- Lst$zlim[2]
+    }
+    if ( !is.null(Lst$main) ) {
+      title <- Lst$main
+    }
+    if ( !is.null(Lst$colors) ) {
+      colors <- Lst$colors
+    }
+    if ( !is.null(Lst$labels) ) {
+      point_labels <- Lst$labels
+    }
+  }
+
+  par(mar = c(5, 4, 4, 2) + 0.1, oma = c(6,0,0,0), pty = "s")
+  a <- 0.5
+  b <- 2
+  cexf <- ((sqrt(weights) - min(sqrt(weights)))/(max(sqrt(weights)) - min(sqrt(weights)))*(b - a) + a)
+  cexl <- rep(0.5, length(cexf))
+  x_max <- max(-x[, 1])
+  y_max <- max(x[, 2])
+  x_min <- min(-x[, 1])
+  y_min <- min(x[, 2])
+
+  plot(
+    x[, 1],
+    x[, 2],
+    cex = cexf,
+    main = title,
+    cex.axis = .9,
+    cex.lab = .9,
+    col = colors[group_by],
+    xlim = c(-.1 * (x_max - x_min) + x_min, .1 * (x_max - x_min) + x_max),
+    ylim = c(-.1 * (y_max - y_min) + y_min, .1 * (y_max - y_min) + y_max)
+  )
+
+  wordcloud::textplot(
+    x[, 1],
+    x[, 2],
+    point_labels,
+    show.lines = TRUE,
+    new = FALSE,
+    cex = cexl,
+    col = rgb(.11, .11, .11, .33),
+    xlim = c(-.2 * (x_max - x_min) + x_min, .2 * (x_max - x_min) + x_max),
+    ylim = c(-.2 * (y_max - y_min) + y_min, .2 * (y_max - y_min) + y_max)
+
+  )
+  abline(h = 0)
+  abline(v = 0)
+  par(mar = c(0,0,0,0), oma = c(0,0,10,0), pty = "m")
+  if (length(unique(group_by)) < 10) {
+    legend(
+      "bottom",
+      legend = stringr::str_sort(unique(group_by), numeric = TRUE),
+      col = colors[stringr::str_sort(unique(group_by), numeric = TRUE)],
+      pch = 2,
+      horiz = TRUE,
+      cex = .8,
+      bty = "o",
+      xpd = TRUE
+    )
+  } else {
+    legend(
+      "bottom",
+      legend = str_sort(unique(group_by), numeric = TRUE),
+      col = colors[str_sort(unique(group_by), numeric = TRUE)],
+      pch = 2,
+      ncol = 5,
+      cex = .8,
+      bty = "o",
+      xpd = TRUE
+    )
+  }
+  layout(1)
+}
+
 for (dataset in datasets) {
-  party <- data[[dataset]]$Councillors$party
-  labels <- data[[dataset]]$Councillors$names
+  
+  party <- 
+    data[[dataset]]$members_of_parliment$parties %>% 
+    map(~ .x$party_name[which(max(.x$end_date - .x$start_date) == .x$end_date - .x$start_date)]) %>% 
+    unlist
+
+  selection <-
+    data[[dataset]]$members_of_parliment %>% select(i_id, first_name, last_name, gender) %>% distinct()
+  labels <- paste(selection$first_name, selection$last_name)
 
   results[[dataset]]$tsne_D <- Rtsne(
     dissimilarites[[dataset]],
     is_distance = TRUE
   )
-  plot.tsne(
+  plot_tsne(
     results[[dataset]]$tsne_D$Y,
-    weights[[dataset]],
+    weights = weights[[dataset]],
     group_by = party,
     labels = labels,
     main = paste(
-      "Tsne Distance: Party", gsub("_", " ", dataset), "Option", selected_option
+      "Tsne Distance: Party", gsub("_", " ", dataset), "Option", params$selected_option
     )
   )
 }
@@ -280,16 +406,22 @@ for (dataset in datasets) {
 
 # Party similarity
 
-```{r }
+```{r fig.width=12, fig.height=12}
 ################ betwen parties ################
 
 for (dataset in datasets) {
-  results[[dataset]]$paries <- group_mesures(
+  party <- 
+    data[[dataset]]$members_of_parliment$parties %>%
+    map_chr(~ .x$party_name[which(max(.x$end_date - .x$start_date) == .x$end_date - .x$start_date)]) %>% 
+    unlist()
+
+  results[[dataset]]$party_similarity <- group_similarity(
     dissimilarites[[dataset]],
-    weights[[dataset]],
-    data[[dataset]]$Councillors$party
+    f = weights[[dataset]],
+    groups = party
   )
 }
+
 ```
 
 # Consensual Votes
@@ -330,8 +462,9 @@ for (dataset in datasets) {
 results[[dataset]]$effective_entropy <- effective_entropy(
   dissimilarites[[dataset]], weights[[dataset]],
   Nloop = 200, Nfine = 1200,
-  pa = -3, pb = 3, power_crit = -0.115148
+  pa = -3, pb = 3
 )
+}
 
 ```
 
@@ -354,7 +487,8 @@ for (dataset in datasets) {
      par(mar = c(4.1,5.1,0.5,0.5))
   matplot(ee$Ty, main = paste(dataset, "Ty"), type = "s")
        par(mar = c(4.1,5.1,0.5,0.5))
-  matplot(ee$beta_rel,cbind(ee$E,ee$R,ee$H),type =  c("l"),lwd=c(2,2,2),col=c(1,1,1),log = "x")
+  matplot(ee$beta_rel,cbind(ee$E,ee$R,ee$H),type =  c("l"), lwd = c(2,2,2),
+          col = c(1,1,1), log = "x")
 }
 
 ```
@@ -363,7 +497,7 @@ for (dataset in datasets) {
 for (dataset in datasets) {
   ee <- results[[dataset]]$effective_entropy
   for (i in nrow(ee$rho)){
-    matplot(ee$beta_rel, ee$rho[i,],log="x",type="l", verbode = TRUE)
+    matplot(ee$beta_rel, ee$rho[i,],log="x",type="l")
   }
 }
 ```
