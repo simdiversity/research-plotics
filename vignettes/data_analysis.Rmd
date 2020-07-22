@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
 knitr::opts_chunk$set(echo = FALSE)
 library(simdiversity.research.politics)
 datasets <- c(
-  "swiss_legislator_49", 
+  "swiss_legislator_49",
   "swiss_legislator_50",
   "italian_legislator_17",
   "italian_legislator_18"
@@ -27,26 +27,26 @@ datasets
 ```
 
 
-```{r , include=FALSE, include=FALSE}
+```{r}
 params <- list(selected_option = 1, datasets = datasets)
 ```
 
-```{r eval=FALSE, child="../inst/sub_vignettes/_data_analysis.Rmd", include=FALSE}
+```{r, child="../inst/sub_vignettes/_data_analysis.Rmd"}
 ```
 
 
-```{r , include=FALSE}
+```{r}
 params <- list(selected_option = 2, datasets = datasets)
 ```
 
-```{r eval=FALSE, child="../inst/sub_vignettes/_data_analysis.Rmd", include=FALSE}
+```{r, child="../inst/sub_vignettes/_data_analysis.Rmd"}
 ```
 
 
-```{r, include=FALSE}
+```{r}
 params <- list(selected_option = 3, datasets = datasets)
 ```
 
-```{r eval=FALSE, child="../inst/sub_vignettes/_data_analysis.Rmd", include=FALSE}
+```{r, child="../inst/sub_vignettes/_data_analysis.Rmd"}
 ```
 
