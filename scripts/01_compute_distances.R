@@ -83,6 +83,7 @@ for (dataset_name in data_sets) {
     )
 
 
+<<<<<<< HEAD
       weighted_vote_disputedness <- dataset_from_str(
         paste0(
           dataset_name, "__", option,
@@ -123,6 +124,48 @@ for (dataset_name in data_sets) {
                      paste0(dataset_name, "__", option, "__D_final__unweighted"),
                      compress = "xz"
       )
+=======
+    #  weighted_vote_disputedness <- dataset_from_str(
+    #    paste0(
+    #      dataset_name, "__", option,
+    #      "__weighted_vote_disputedness"
+    #    )
+    #  )
+    # #
+    #  weighted_vote_disputedness <- disputedness(
+    #    scores_matrix, weight
+    #  )
+    #  save_with_name( weighted_vote_disputedness,
+    #                  paste0(dataset_name, "__", option, "__weighted_vote_disputedness"),
+    #                  compress = "gzip"
+    #  )
+    # #
+    #  D_final <- estimate_distance(
+    #    scores_matrix, weight, weighted_vote_disputedness
+    #  )
+    #
+    #  save_with_name(D_final,
+    #    paste0(dataset_name, "__", option, "__D_final__weighted"),
+    #    compress = "xz"
+    #  )
+    #
+    #  unweighted_vote_disputedness <- disputedness(
+    #    scores_matrix, weight
+    #  )
+    #  save_with_name( unweighted_vote_disputedness,
+    #                  paste0(dataset_name, "__", option, "__unweighted_vote_disputedness"),
+    #                  compress = "gzip"
+    #  )
+    #
+    #  D_final_unweighted <- estimate_distance(
+    #    scores_matrix, weight, unweighted_vote_disputedness
+    #  )
+    #
+    #  save_with_name(D_final_unweighted,
+    #                 paste0(dataset_name, "__", option, "__D_final__unweighted"),
+    #                 compress = "xz"
+    #  )
+>>>>>>> 62ba069... Last version
 
   gc()
   }
