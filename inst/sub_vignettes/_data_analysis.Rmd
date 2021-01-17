@@ -290,7 +290,7 @@ for (dataset in datasets) {
 ## TSNE
 
 ```{r , fig.width=12, fig.height=12}
-plot_tsne <- function(x, group_by, weights,...) {
+plot_tsne <- function(x, group_by, f,...) {
   title <- c()
   colors <- grDevices::rainbow(length(unique(group_by)), alpha = .9)
   names(colors) <- stringr::str_sort(unique(group_by), numeric = TRUE)
@@ -315,7 +315,7 @@ plot_tsne <- function(x, group_by, weights,...) {
   par(mar = c(5, 4, 4, 2) + 0.1, oma = c(6,0,0,0), pty = "s")
   a <- 0.5
   b <- 2
-  cexf <- ((sqrt(weights) - min(sqrt(weights)))/(max(sqrt(weights)) - min(sqrt(weights)))*(b - a) + a)
+  cexf <- ((sqrt(f) - min(sqrt(f)))/(max(sqrt(f)) - min(sqrt(f)))*(b - a) + a)
   cexl <- rep(0.5, length(cexf))
   x_max <- max(-x[, 1])
   y_max <- max(x[, 2])
@@ -392,7 +392,7 @@ for (dataset in datasets) {
   )
   plot_tsne(
     results[[dataset]]$tsne_D$Y,
-    weights = weights[[dataset]],
+    f = weights[[dataset]],
     group_by = party,
     labels = labels,
     main = paste(
@@ -415,7 +415,7 @@ for (dataset in datasets) {
     map_chr(~ .x$party_name[which(max(.x$end_date - .x$start_date) == .x$end_date - .x$start_date)]) %>% 
     unlist()
 
-  results[[dataset]]$party_similarity <- group_similarity(
+  results[[dataset]]$party_similarity <- group_dissimilarity(
     dissimilarites[[dataset]],
     f = weights[[dataset]],
     groups = party

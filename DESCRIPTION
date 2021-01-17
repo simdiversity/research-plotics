@@ -17,17 +17,17 @@ Imports:
     rmarkdown,
     magrittr,
     tibble,
-    tidyverse,
     dplyr,
     here,
-    golem,
-    filling,
-    parallelDist,
     R.matlab,
     qpdf
+Remotes:
+  simdiversity/data-politics,
+  simdiversity/entropy,
+  simdiversity/RNcEDGPS
 Depends: 
     R (>= 3.50)
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 Suggests: 
     knitr
 VignetteBuilder: knitr

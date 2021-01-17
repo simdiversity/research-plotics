@@ -6,3 +6,4 @@
 ^inst/Nonconvex-Euclidean-Distance-Geometry-Problem-Solver/.*$
 ^doc$
 ^Meta$
+^\.github$
