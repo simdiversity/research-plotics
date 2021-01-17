@@ -19,12 +19,13 @@ Imports:
     tibble,
     dplyr,
     here,
-    R.matlab,
+    Rtsne,
     qpdf
 Remotes:
-  simdiversity/data-politics,
-  simdiversity/entropy,
-  simdiversity/RNcEDGPS
+  https://github.com/simdiversity/data-politics,
+  https://github.com/simdiversity/entropy,
+  https://github.com/simdiversity/RNcEDGPS,
+  https://github.com/simdiversity/weighted.mds
 Depends: 
     R (>= 3.50)
 RoxygenNote: 7.1.1
