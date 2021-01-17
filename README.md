@@ -10,6 +10,7 @@ in R
   library("devtools")
   devtools::install_github("simdiversity/data-politics")
   devtools::install_github("simdiversity/entropy")
+  devtools::install_github("simdiversity/weighted.mds)
   devtools::install_github("simdiversity/RNcEDGPS")
 ```
 in terminal 
