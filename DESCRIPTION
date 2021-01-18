@@ -20,7 +20,10 @@ Imports:
     dplyr,
     here,
     Rtsne,
-    qpdf
+    qpdf,
+    devtools,
+    stringr,
+    wordcloud
 Remotes:
   https://github.com/simdiversity/data-politics,
   https://github.com/simdiversity/entropy,
